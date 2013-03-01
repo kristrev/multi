@@ -29,9 +29,10 @@ Features
 
 How to install
 --------------
-First, install the required dependencies. These are libiw, glib and libyaml. If
-you are using Ubuntu or Debian, the package names are libiw-dev, libglib2.0-dev
-and libyaml-dev. Then, either use cmake or normal make directly to compile MNM.
+First, install the required dependencies. These are libiw, glib, libyaml and
+libmnl. If you are using Ubuntu or Debian, the package names are libiw-dev,
+libglib2.0-dev, libyaml-dev and libmnl-dev. Then, either use cmake or normal
+make directly to compile MNM.
 
 Note that the versions referenced in the CMake-file are those I have used
 when working on MNM lately. Please let me know if it MNM compiles and works with
