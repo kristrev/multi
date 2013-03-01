@@ -53,6 +53,10 @@ come up, but don't get an IP (i.e., for use with MNM), set them to manual in
 If you are going to use MNM with PPP devices, make sure the 'nodefaultroute'
 option is specified. MNM will create this route automatically.
 
+Unless a static IP is specified, MNM assumes that IPs for LAN and WLAN
+interfaces will be obtained using DHCP. For PPP devices, MNM assumes that an IP
+has been allocated by the ISP and set by the dialer.
+
 Future work
 -----------
 * IPv6 support: Due to a lack of available IPv6 networks, I have not been able
