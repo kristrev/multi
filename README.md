@@ -69,3 +69,9 @@ to be updated as new interfaces are added.
 While working on my PhD, I had to make several experiments on multihomed hosts
 with different number of active network interfaces. After I had made one to many
 configuration mistakes with my setup scripts, I decided to write MNM.
+
+Contact
+-------
+
+If you have any questions, comments or just want to say hi, please contact me at
+kristian.evensen@gmail.com.
