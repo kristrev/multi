@@ -111,7 +111,8 @@ struct multi_dhcp_info{
     uint32_t t2;
     uint32_t lease;
     uint8_t retrans_count;
-    uint8_t output_timer; //Says wheter or not a NEW timer event has started, to make output nicer
+    //Says wheter or not a NEW timer event has started, to make output nicer
+    uint8_t output_timer; 
 };
 
 #endif

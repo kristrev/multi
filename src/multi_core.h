@@ -36,12 +36,13 @@
 
 /* Internal thread used to synchronize thread startup */
 struct multi_core_sync{
-    struct multi_config *mc; //Maybe this can be void ... So I dont need to pass the whole mc to for example the link module
+    struct multi_config *mc; 
     pthread_mutex_t sync_mutex;
     pthread_cond_t sync_cond;
 };
 
-struct multi_config* multi_core_initialize_config(uint8_t *cfg_file, uint8_t unique);
+struct multi_config* multi_core_initialize_config(uint8_t *cfg_file, 
+        uint8_t unique);
 int32_t multi_core_send(int32_t sock_fd, uint8_t *buf, int32_t numbytes);
 pthread_t multi_start(struct multi_config *mc);
 #endif

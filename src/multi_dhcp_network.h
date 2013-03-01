@@ -23,24 +23,35 @@
 #include <netinet/in.h>
 #include <stdint.h>
 
-/* Used to send messages over the raw socket. If broadcast is set to one, then from_ip is src ip. Otherwise,
- * src is gathered from client address in the dhcp msg (case only relevant after succesful BIND) */
-int32_t multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct multi_dhcp_message *msg, uint8_t broadcast);
+/* Used to send messages over the raw socket. If broadcast is set to one, then
+ * from_ip is src ip. Otherwise, src is gathered from client address in the dhcp
+ * msg (case only relevant after succesful BIND) */
 
-/* Send a message unicast. Used to renew a lease, as the initial messages are sent directly to the server */
-int32_t multi_dhcp_snd_msg_udp(int sock, struct in_addr *to, struct multi_dhcp_message *msg);
+int32_t multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, 
+        struct multi_dhcp_message *msg, uint8_t broadcast);
+
+/* Send a message unicast. Used to renew a lease, as the initial messages are
+ * sent directly to the server */
+int32_t multi_dhcp_snd_msg_udp(int sock, struct in_addr *to, 
+        struct multi_dhcp_message *msg);
 
 /* IPv4 checksumming */
-static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, uint16_t csum);
+static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, 
+        uint16_t csum);
 
-/* Receives DHCP messages. The message is stored in ms and function returns 0 on success, -1 otherwise */
-int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, struct multi_dhcp_message *dhcp_msg);
+/* Receives DHCP messages. The message is stored in ms and function returns 0 on
+ * success, -1 otherwise */
+int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, 
+        struct multi_dhcp_message *dhcp_msg);
 
-/* Creates RAW and UDP socket. In order to avoid redundant calls, di is included to store the interface index and mac-addr */
-int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, struct multi_dhcp_info *di);
+/* Creates RAW and UDP socket. In order to avoid redundant calls, di is included
+ * to store the interface index and mac-addr */
+int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, 
+        struct multi_dhcp_info *di);
 int multi_dhcp_create_udp_socket(struct multi_link_info *li);
 
-/* Helter that currently pushes one byte through the pipe to notify the link module. Will maybe contain more info in future versions */
+/* Helter that currently pushes one byte through the pipe to notify the link
+ * module. Will maybe contain more info in future versions */
 void multi_dhcp_notify_link_module(int32_t pipe_fd);
 
 #endif

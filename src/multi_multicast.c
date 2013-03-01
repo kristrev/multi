@@ -32,7 +32,8 @@
 
 extern char *optarg;
 extern int32_t opterr;
-extern struct multi_config* initialize_config(uint8_t *cfg_file, void *(*recv_data) (void *, int32_t));
+extern struct multi_config* initialize_config(uint8_t *cfg_file, 
+        uint8_t unique);
 extern pthread_t multi_start(struct multi_config *mc);
 
 struct iface{
@@ -84,8 +85,11 @@ void multi_test_visible_loop(struct multi_config *mc){
     memset(&msg, 0, sizeof(msg));
 
     src_addr.nl_family = AF_NETLINK;
-    src_addr.nl_pid = 0; //If PID is set to zero, then the kernel assigns the unique value
-    src_addr.nl_groups = 0; //This is the source, it only multicasts, so it does not have to be member of any groups!
+    //If PID is set to zero, then the kernel assigns the unique value
+    src_addr.nl_pid = 0; 
+    //This is the source, it only multicasts, so it does not have to be 
+    //member of any groups!
+    src_addr.nl_groups = 0; 
 
     if(bind(netlink_sock, (struct sockaddr *) &src_addr, sizeof(src_addr)) < 0){
         perror("Could not bind netlink socket: ");
@@ -93,10 +97,11 @@ void multi_test_visible_loop(struct multi_config *mc){
     }
 
     dest_addr.nl_family = AF_NETLINK;
-    dest_addr.nl_pid = 0; //This value seems to be ignored when multicast is used
+    dest_addr.nl_pid = 0; 
     dest_addr.nl_groups = 1;
 
-    MULTI_DEBUG_PRINT(stderr, "Multi manager is ready! Netlink socket %d\n", netlink_sock);
+    MULTI_DEBUG_PRINT(stderr, "Multi manager is ready! Netlink socket %d\n", 
+            netlink_sock);
     MULTI_DEBUG_PRINT(stderr, "M S\n");
 
     //Look at the Wikipedia site for iovec and man(7) netlink for examples on
@@ -104,7 +109,7 @@ void multi_test_visible_loop(struct multi_config *mc){
     msg.msg_name = (void *) &dest_addr; //This is the message's destination
     msg.msg_namelen = sizeof(dest_addr);
     msg.msg_iov = &iov;
-    msg.msg_iovlen = 1; //usually, this is set to sizeof(iov) / sizeof(struct iovec)
+    msg.msg_iovlen = 1; 
 
     //Initialise everything related to select
     FD_ZERO(&master);
@@ -122,7 +127,6 @@ void multi_test_visible_loop(struct multi_config *mc){
 
         //Repeat every UP message
         if(retval == 0){
-            //MULTI_DEBUG_PRINT(stderr, "Timed out and will broadcast all UP messages received\n");
             ifaces_tmp = ifaces;
 
             while(ifaces_tmp){
@@ -170,9 +174,11 @@ void multi_test_visible_loop(struct multi_config *mc){
                 iov.iov_base = (void *) ni->nlmsg;
                 iov.iov_len = ni->nlmsg->nlmsg_len;
                 retval = sendmsg(netlink_sock, &msg, 0);
-                MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about an UP change in network state\n", retval);
+                MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about an UP "
+                        "change in network state\n", retval);
             } else {
-                if(ifaces_tmp = g_slist_find_custom(ifaces, &ifi_idx, test_match_idx)){
+                if(ifaces_tmp = g_slist_find_custom(ifaces, &ifi_idx, 
+                            test_match_idx)){
                     //Forward message from MULTI
                     ni = (struct iface *) ifaces_tmp->data;
                     ni->nlmsg->nlmsg_len = NLMSG_SPACE(retval);
@@ -180,7 +186,8 @@ void multi_test_visible_loop(struct multi_config *mc){
                     iov.iov_base = (void *) ni->nlmsg;
                     iov.iov_len = ni->nlmsg->nlmsg_len;
                     retval = sendmsg(netlink_sock, &msg, 0);
-                    MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about a DOWN change in network state\n", retval);
+                    MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about a "
+                            "DOWN change in network state\n", retval);
                     
                     //Remove iface from list, only interested in interfaces that
                     //are up

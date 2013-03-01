@@ -33,7 +33,8 @@
 
 extern GSList *multi_link_static_links;
 extern GSList *multi_link_links;
-extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, uint32_t metric);
+extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
+        uint32_t metric);
 
 //Read the documentation, this basically does what the old parse does (put in
 //tb), but is is much more flexible
@@ -73,7 +74,8 @@ static gint multi_link_cmp_ifidx(gconstpointer a, gconstpointer b){
     struct ifaddrmsg *ifa = (struct ifaddrmsg *) b;
 
     //Ignore PPP interfaces, as they will not be flushed!
-    if((li->state != GOT_IP_PPP && li->state != GOT_IP_AP) && li->ifi_idx == ifa->ifa_index)
+    if((li->state != GOT_IP_PPP && li->state != GOT_IP_AP) && li->ifi_idx == 
+            ifa->ifa_index)
         return 0;
 }
 
@@ -81,7 +83,8 @@ static gint multi_link_cmp_ipaddr(gconstpointer a, gconstpointer b){
     struct multi_link_info *li = (struct multi_link_info *) a;
     uint32_t *ip_addr_cmp = (uint32_t *) b;
 
-    MULTI_DEBUG_PRINT(stderr, "Comparing %u with %u\n", li->cfg.address.s_addr, *ip_addr_cmp);
+    MULTI_DEBUG_PRINT(stderr, "Comparing %u with %u\n", li->cfg.address.s_addr, 
+            *ip_addr_cmp);
 
     //Comparing IP address will of course NOT work. This function is only used
     //on flush, which is done BEFORE DHCP is run!
@@ -118,8 +121,10 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 	GSList *li_static_tmp;
     uint8_t wireless_mode = 0;
 
-    /* Tunneling interfaces have no ARP header, so they can be ignored, as well as loopback. See linux/if_arp.h for different definitions */
-    if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE || ifi->ifi_flags & IFF_LOOPBACK)
+    /* Tunneling interfaces have no ARP header, so they can be ignored, 
+     * as well as loopback. See linux/if_arp.h for different definitions */
+    if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE || 
+            ifi->ifi_flags & IFF_LOOPBACK)
         return MNL_CB_OK;
 
     //Check for WLAN
@@ -127,7 +132,8 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
     if((wireless_mode = multi_link_check_wlan_mode(devname)))
         if(wireless_mode == 6){
-            MULTI_DEBUG_PRINT(stderr, "Interface %s is wireless monitor, ignoring\n", devname);
+            MULTI_DEBUG_PRINT(stderr, "Interface %s is wireless monitor, "
+                    "ignoring\n", devname);
             return MNL_CB_OK;
         }
 
@@ -144,7 +150,8 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         if(ifi->ifi_flags & IFF_RUNNING){
             //Assume that there is initially always room for every link. Maybe
             //change?
-            if((li_static_tmp = g_slist_find_custom(multi_shared_static_links, devname, multi_link_cmp_devname))){
+            if((li_static_tmp = g_slist_find_custom(multi_shared_static_links, 
+                            devname, multi_link_cmp_devname))){
                 li_static = li_static_tmp->data;
                 li = multi_link_create_new_link(devname, li_static->metric);
             } else 
@@ -153,7 +160,8 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
 			/* If link exists in static link list, set link to GOT_STATIC */
 			if(li_static != NULL && li_static->proto == PROTO_STATIC){
-				MULTI_DEBUG_PRINT(stderr, "Link %s was found in static list\n", devname);
+				MULTI_DEBUG_PRINT(stderr, "Link %s was found in static list\n", 
+                        devname);
 				li_static = li_static_tmp->data;
 				li->state = GOT_IP_STATIC;
 				li->cfg = li_static->cfg_static;
@@ -163,12 +171,14 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                 MULTI_DEBUG_PRINT(stderr, "Link %s is PPP!\n", devname);
                 li->state = LINK_DOWN_PPP;
             } else if(wireless_mode == 3){
-                MULTI_DEBUG_PRINT(stderr, "Link %s is wireless access point\n", devname);
+                MULTI_DEBUG_PRINT(stderr, "Link %s is wireless access point\n", 
+                        devname);
                 li->state = LINK_DOWN_AP;                
             } else
                 MULTI_DEBUG_PRINT(stderr, "Found link %s\n", devname);
 
-            multi_link_links = g_slist_prepend(multi_link_links, (gpointer) li); //The order in which links are stored in this list is not important
+            //The order in which links are stored in this list is not important
+            multi_link_links = g_slist_prepend(multi_link_links, (gpointer) li); 
 
         }
     }
@@ -187,13 +197,15 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
         //Copy the nlmsg, as I will recycle it later when I delete everything!
         nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
-        ip_info->ip_addr_n = g_slist_append(ip_info->ip_addr_n, (gpointer) nlh_tmp);
+        ip_info->ip_addr_n = g_slist_append(ip_info->ip_addr_n, 
+                (gpointer) nlh_tmp);
 
         mnl_attr_parse(nlh, sizeof(*ifa), multi_link_fill_rtattr, tb);
 
         if(tb[IFA_LOCAL]){
             ipaddr = mnl_attr_get_u32(tb[IFA_LOCAL]); 
-            ip_info->ip_addr = g_slist_append(ip_info->ip_addr, GUINT_TO_POINTER(ipaddr));
+            ip_info->ip_addr = g_slist_append(ip_info->ip_addr, 
+                    GUINT_TO_POINTER(ipaddr));
         }
     }
 
@@ -296,12 +308,14 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 
     //Delete ANY rule which does not point to one of the default tables
     if(rt->rtm_table > 0 && rt->rtm_table < 253){
-        MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", mnl_attr_get_u32(tb[FRA_PRIORITY]));
+        MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
+                mnl_attr_get_u32(tb[FRA_PRIORITY]));
 
         /* Add the rule nlmsg to list */
         nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
-        ip_info->ip_rules_n = g_slist_append(ip_info->ip_rules_n, (gpointer) nlh_tmp);
+        ip_info->ip_rules_n = g_slist_append(ip_info->ip_rules_n, 
+                (gpointer) nlh_tmp);
     }
 
     return MNL_CB_OK;
@@ -327,12 +341,11 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     if(tb[RTA_OIF]){
         oif = mnl_attr_get_u32(tb[RTA_OIF]);
 
-        //if(g_slist_find_custom(multi_link_links, &oif, multi_link_cmp_oif)){
         //Clear out the whole routing table, multi will control everything!
         nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
-        ip_info->ip_routes_n = g_slist_append(ip_info->ip_routes_n, (gpointer) nlh_tmp);
-        //}
+        ip_info->ip_routes_n = g_slist_append(ip_info->ip_routes_n, 
+                (gpointer) nlh_tmp);
     }
 
     return MNL_CB_OK;

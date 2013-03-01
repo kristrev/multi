@@ -22,7 +22,8 @@
 #include <asm/types.h>
 #include <sys/socket.h>
 
-/* Helper struct to keep the different lists of information needed to configure a system where interfaces are already up  */
+/* Helper struct to keep the different lists of information needed to 
+ * configure a system where interfaces are already up  */
 struct ip_info{
     GSList *ip_addr; //The actual ip-addresses, convenience when requesting rules
     GSList *ip_addr_n; //The nlmsgs, will be used to delete ip addresses
@@ -30,7 +31,8 @@ struct ip_info{
     GSList *ip_routes_n; //The table ID
 };
 
-int32_t multi_link_fill_rtattr(const struct nlattr *attr, void *data); //Helper function for filling in rtattr
+//Helper function for filling in rtattr
+int32_t multi_link_fill_rtattr(const struct nlattr *attr, void *data); 
 uint8_t multi_link_check_wlan_mode(uint8_t *dev_name);
 int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data);
 int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data);

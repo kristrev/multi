@@ -31,12 +31,13 @@
 extern void* multi_link_module_init(void *arg);
 extern void* multi_probe_module_init(void *arg);
 
-static uint8_t multi_core_store_address(struct multi_link_info_static *mlis, uint8_t *key_data, 
-        uint8_t *value_data, uint8_t *addr_count){
+static uint8_t multi_core_store_address(struct multi_link_info_static *mlis, 
+        uint8_t *key_data, uint8_t *value_data, uint8_t *addr_count){
     struct in_addr ipaddr;
     
     if(inet_pton(AF_INET, value_data, &ipaddr) == 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not convert %s (invalid parameter?)\n", value_data);
+        MULTI_DEBUG_PRINT(stderr, "Could not convert %s (invalid parameter?)\n", 
+                value_data);
         return 1;
     }
 
@@ -58,7 +59,8 @@ static uint8_t multi_core_store_address(struct multi_link_info_static *mlis, uin
     return 0;
 }
 
-uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis, yaml_parser_t *parser){
+uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis, 
+        yaml_parser_t *parser){
     yaml_event_t key, value;
     uint8_t *value_data, *key_data;
     uint8_t error = 0;
@@ -80,7 +82,8 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis, yaml_pa
         if(key.type == YAML_MAPPING_END_EVENT){
             yaml_event_delete(&key);
             if((addr_count > 0 && addr_count != 2) || !proto){
-                MULTI_DEBUG_PRINT(stderr, "Required information (address/netmask/proto) is missing\n");
+                MULTI_DEBUG_PRINT(stderr, "Required information"
+                        "(address/netmask/proto) is missing\n");
                 error = 1;
             }
 
@@ -113,7 +116,9 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis, yaml_pa
 
                     //Check if metric is set
                     if(multi_shared_metrics_set & (1<<(metric-1))){
-                        MULTI_DEBUG_PRINT(stderr, "Metric for %s is already used\n", mlis->dev_name);
+                        MULTI_DEBUG_PRINT(stderr, 
+                                "Metric for %s is already used\n", 
+                                mlis->dev_name);
                         error = 1;
                         break;
                     }
@@ -134,7 +139,8 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis, yaml_pa
                     break;
                 }
             } else {
-                if((error = multi_core_store_address(mlis, key_data, value_data, &addr_count)))
+                if((error = multi_core_store_address(mlis, key_data, value_data, 
+                                &addr_count)))
                     break;
             }
 
@@ -170,8 +176,8 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
         }
 
         if(event.type == YAML_STREAM_END_EVENT){
-            //LibYAML might allocate memory for events and so forth. Must therefore
-            //free
+            //LibYAML might allocate memory for events and so forth. Must 
+            //therefore free
             yaml_event_delete(&event);
             break;
         } else if(event.type == YAML_SCALAR_EVENT){
@@ -183,9 +189,11 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
 
             //The outer loop should only see scalars, which is the interface
             //names
-            mlis = (struct multi_link_info_static *) malloc(sizeof(struct multi_link_info_static));
+            mlis = (struct multi_link_info_static *) 
+                malloc(sizeof(struct multi_link_info_static));
             mlis->metric = 0;
-            memcpy(mlis->dev_name, event.data.scalar.value, strlen(event.data.scalar.value) + 1);
+            memcpy(mlis->dev_name, event.data.scalar.value, 
+                    strlen(event.data.scalar.value) + 1);
             yaml_event_delete(&event);
 
             //Make sure next event is mapping!
@@ -194,18 +202,22 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
                 error = 1;
                 break;
             } else if(event.type != YAML_MAPPING_START_EVENT){
-                MULTI_DEBUG_PRINT(stderr, "Configuration file is incorrect. No information for interface\n");
+                MULTI_DEBUG_PRINT(stderr, "Configuration file is incorrect." 
+                        "No information for interface\n");
                 error = 1;
                 break;
             }
             
             if(multi_core_parse_iface_info(mlis, &parser)){
-                MULTI_DEBUG_PRINT(stderr, "Parsing of configuration file failed\n");
+                MULTI_DEBUG_PRINT(stderr, 
+                        "Parsing of configuration file failed\n");
                 error = 1;
                 break;
             } else {
-                multi_shared_static_links = g_slist_append(multi_shared_static_links, (gpointer) mlis);
-                MULTI_DEBUG_PRINT(stderr, "Interface %s added to static list\n", mlis->dev_name);
+                multi_shared_static_links = g_slist_append(
+                        multi_shared_static_links, (gpointer) mlis);
+                MULTI_DEBUG_PRINT(stderr, "Interface %s added to static list\n", 
+                        mlis->dev_name);
             }
         }
     }
@@ -217,7 +229,8 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
 }
 
 /* Allocates and returns a config struct needed for multi to work */
-struct multi_config* multi_core_initialize_config(uint8_t *cfg_file, uint8_t unique){
+struct multi_config* multi_core_initialize_config(uint8_t *cfg_file, 
+        uint8_t unique){
     struct multi_config *mc;
 
     multi_shared_metrics_set = 0;
@@ -265,7 +278,6 @@ static void* multi_core_init(void *arg){
     pthread_cond_signal(&(mcs_main->sync_cond));
     pthread_mutex_unlock(&(mcs_main->sync_mutex));
 
-    /* I can probably cancel this thread from my other application. Check this! */
     pthread_join(link_thread, NULL);
 
     return NULL;

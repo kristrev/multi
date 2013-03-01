@@ -27,19 +27,31 @@
 #include "multi_shared.h"
 #include "multi_link_shared.h"
 
-/* Reason for making these global, is that they are accsessed several times in the same "class" */
-//I suspect the reason I need three sockets is that the set-function sometimes causes replies
-//(when for example routes do not exist). This is why I cant use request, then
-//it goes crazy because of sequence numbers. Could be solved by non-blocking
-struct mnl_socket *multi_link_nl_request; //libmnl structure, new netlink communication point, used for requests
-struct mnl_socket *multi_link_nl_event; //libmnl structure used only for events
-struct mnl_socket *multi_link_nl_set; //limnl structure used only for setting parameters
-GSList *multi_link_links; // The link module's list of all links
-int32_t multi_link_dhcp_pipes[2]; // The pipe used for communication between dhcp and link module
+/* Reason for making these global, is that they are accsessed several times in
+ * the same "class" */
+//The reason I need three sockets is that the set-function sometimes causes
+//replies (when for example routes do not exist). This is why I cant use
+//request, then it goes crazy because of sequence numbers. Could be solved by
+//non-blocking
 
-static uint8_t multi_link_check_unique(struct multi_link_info *li, uint8_t update);
+//libmnl structure, new netlink communication point, used for requests
+struct mnl_socket *multi_link_nl_request; 
+//libmnl structure used only for events
+struct mnl_socket *multi_link_nl_event; 
+//limnl structure used only for setting parameters
+struct mnl_socket *multi_link_nl_set; 
+//The link module's list of all links
+GSList *multi_link_links; 
+//The pipe used for communication between dhcp and link module
+int32_t multi_link_dhcp_pipes[2]; 
+
+static uint8_t multi_link_check_unique(struct multi_link_info *li, 
+        uint8_t update);
 static int32_t multi_link_event_loop(struct multi_config *mc);
 void *multi_link_init(void *arg);
-struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, uint32_t metric); //This is also needed by filter
-int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg); //Generic filter algorithm
+//This is also needed by filter
+struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
+        uint32_t metric); 
+//Generic filter algorithm
+int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg); 
 #endif

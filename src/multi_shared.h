@@ -53,8 +53,9 @@ struct multi_link_info_static{
 };
 
 //List of static interfaces
-GSList* multi_shared_static_links; //List of interfaces that will be assigned a static IP
+GSList* multi_shared_static_links; 
 
-//Bitset for keeping track of metrics. Must be larger if MAX_NUM_LINKS is increased
+//Bitset for keeping track of metrics. Must be larger if MAX_NUM_LINKS is 
+//increased
 uint32_t multi_shared_metrics_set;
 #endif

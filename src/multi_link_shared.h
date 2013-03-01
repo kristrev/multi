@@ -28,17 +28,30 @@
 #define MAX_PIPE_MSG_LEN 10 //Can be useful later on, if the pipe is used for more useful information
 
 struct multi_link_info{
-    int32_t write_pipe; //Used by the DHCP-thread to signal link thread. Used for notification, not for identification. DHCP updates the state of this link (if used)!
-    struct multi_dhcp_config cfg, new_cfg; //Store the configuration (new cfg is used when config changes)
-    uint8_t dev_name[IFNAMSIZ]; //Name of interface to perform DHCP on
-    link_state state; //Indicates which state the link is in, used by DHCP and Link module to decide on action
-    uint32_t ifi_idx; //Convenience, the interface index is used so many times that it makes sense to put it here
-    uint32_t metric; //Routing table metric
-    uint8_t keep_metric; //Set for config entries with the metric set. The metric is assumed to be persistent
-
-    int32_t decline_pipe[2]; //Used to instruct DHCP client that the IP should be declined
+    //Used by the DHCP-thread to signal link thread. Used for notification, not
+    //for identification. DHCP updates the state of this link (if used)!
+    int32_t write_pipe; 
+    //Store the configuration (new cfg is used when config changes)
+    struct multi_dhcp_config cfg, new_cfg; 
+    //Name of interface to perform DHCP on
+    uint8_t dev_name[IFNAMSIZ]; 
+    //Indicates which state the link is in, used by DHCP and Link module to 
+    //decide on action
+    link_state state; 
+    //Convenience, the interface index is used so many times that it makes 
+    //sense to put it here
+    uint32_t ifi_idx; 
+    //Routing table metric
+    uint32_t metric; 
+    //Set for config entries with the metric set. The metric is assumed to be 
+    //persistent
+    uint8_t keep_metric; 
+    //Used to instruct DHCP client that the IP should be declined
+    int32_t decline_pipe[2]; 
     pthread_t dhcp_thread;
-    GStaticRWLock state_lock; //This might not have to be locked at all (can leave with some level of instability), but have rwlock for now
+    //This might not have to be locked at all (can leave with some level of 
+    //instability), but have rwlock for now
+    GStaticRWLock state_lock; 
 };
 
 #endif

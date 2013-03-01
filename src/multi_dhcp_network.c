@@ -33,7 +33,8 @@
 #include <stdio.h>
 
 /* taken from iputils which basically copied it from RFC 1071 */
-static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, uint16_t csum){
+static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, 
+        uint16_t csum){
     int nleft = len;
     const uint16_t *w = addr;
     uint16_t answer;
@@ -67,7 +68,8 @@ void multi_dhcp_notify_link_module(int32_t pipe_fd){
     write(pipe_fd, "a", 1);
 }
 
-int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct multi_dhcp_message *msg, uint8_t broadcast) {
+int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, 
+        struct multi_dhcp_message *msg, uint8_t broadcast) {
     int length =  msg->pos - &msg->op;
     uint16_t checksum;
     uint32_t i;
@@ -78,7 +80,6 @@ int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct
     } hdr;
 
     struct sockaddr_ll addr = {
-        /* Try filling in MAC header to see what happens, later at least. Should maybe be sufficient to set sll_addr to destination MAC, but maybe more hassle to get in than it is worth */
         .sll_family = AF_PACKET,
         .sll_protocol = htons(ETH_P_IP),
         .sll_ifindex = from_if,
@@ -87,7 +88,6 @@ int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct
         .sll_halen = ETH_ALEN
     };
 
-    /* Have two iovecs, one for hdr and one for base, this is just how they have chosen to do it */
     struct iovec iov[] = {
         { .iov_base = &hdr, .iov_len = sizeof(hdr) },
         { .iov_base = &msg->op, .iov_len = length }
@@ -132,7 +132,7 @@ int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct
 
     checksum = htons(IPPROTO_UDP);
     checksum = multi_dhcp_in_cksum((u_short *)&hdr.udp.len, 2, checksum);
-    checksum = multi_dhcp_in_cksum((u_short *)&hdr.ip.saddr, 16, ~checksum); // saddr, daddr, udp-header
+    checksum = multi_dhcp_in_cksum((u_short *)&hdr.ip.saddr, 16, ~checksum); 
     checksum = multi_dhcp_in_cksum((u_short *)&msg->op, length, ~checksum);
 
     hdr.udp.check = checksum;
@@ -140,17 +140,20 @@ int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, struct
     return sendmsg(sock, &msghdr, 0);
 }
 
-int multi_dhcp_snd_msg_udp(int sock, struct in_addr *to, struct multi_dhcp_message *msg) {
+int multi_dhcp_snd_msg_udp(int sock, struct in_addr *to, 
+        struct multi_dhcp_message *msg) {
     struct sockaddr_in toadr;
     int length = msg->pos - &msg->op;
       
     toadr.sin_family = AF_INET;
     toadr.sin_port = htons(BOOTP_SERVER_PORT);
     toadr.sin_addr = *to;
-    return sendto(sock, &msg->op, length, 0, (const struct sockaddr *)&toadr, sizeof(toadr));
+    return sendto(sock, &msg->op, length, 0, (const struct sockaddr *)&toadr, 
+            sizeof(toadr));
 }
 
-int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, struct multi_dhcp_message *dhcp_msg){
+int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, 
+        struct multi_dhcp_message *dhcp_msg){
     char dframe[ETH_DATA_LEN];
     struct sockaddr_ll addr;
     socklen_t addrsize = sizeof(addr);
@@ -162,7 +165,8 @@ int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, struct multi_dhcp_messag
 
     memset(dhcp_msg, 0, sizeof(*dhcp_msg));
 
-    plen = recvfrom(di->raw_sock, dframe, sizeof(dframe), 0, (struct sockaddr *)&addr, &addrsize);
+    plen = recvfrom(di->raw_sock, dframe, sizeof(dframe), 0, 
+            (struct sockaddr *)&addr, &addrsize);
 
     if (plen == -1) 
         return -1;
@@ -193,17 +197,21 @@ int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, struct multi_dhcp_messag
     }
 
     dhcp_payload = (uint8_t *) (udph + 1);
-    memcpy(&(dhcp_msg->op), dhcp_payload,  ntohs(udph->len) - sizeof(struct udphdr));
+    memcpy(&(dhcp_msg->op), dhcp_payload,  ntohs(udph->len) - 
+            sizeof(struct udphdr));
 
     /* No DHCP */
     if(memcmp(&(dhcp_msg->options), multi_dhcp_vendcookie, 4)){
-        MULTI_DEBUG_PRINT(stderr,"Vendor cookie was not equal, this is not a valid DHCP packet\n"); 
+        MULTI_DEBUG_PRINT(stderr,"Vendor cookie was not equal, this is not a" 
+                "valid DHCP packet\n"); 
         return -1;
     }
    
-    /* First value is casted! The reason for adding 4 is that the first four bytes of the option field is the vendor cookie  */ 
+    /* First value is casted! The reason for adding 4 is that the first four 
+     * bytes of the option field is the vendor cookie  */ 
     dhcp_msg->pos = (uint8_t*) &(dhcp_msg->options) + 4;
-    dhcp_msg->last = (uint8_t*) &(dhcp_msg->op) + (ntohs(udph->len) - sizeof(struct udphdr)) - 1; //Remember, offset
+    dhcp_msg->last = (uint8_t*) &(dhcp_msg->op) + (ntohs(udph->len) - 
+            sizeof(struct udphdr)) - 1; //Remember, offset
     dhcp_msg->overload = DHCP_OVERLOAD_NONE;
     dhcp_msg->currentblock = DHCP_OVERLOAD_NONE;
 
@@ -212,7 +220,8 @@ int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, struct multi_dhcp_messag
     return 1;
 }
 
-int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, struct multi_dhcp_info *di){
+int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, 
+        struct multi_dhcp_info *di){
     struct ifreq ifq;
     int32_t sockfd = 0;
     uint8_t *hwaddr;
@@ -222,14 +231,16 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, struct multi_dh
     memset(&ifq, 0, sizeof(ifq));
     memcpy(&ifq.ifr_name, li->dev_name, strlen(li->dev_name) + 1);
     
-    /* Since I am (currently) not interested in the L2-header, SOCK_DGRAM is used and the L2-header is removed by kernel (man 7 packet). */
+    /* Since I am (currently) not interested in the L2-header, SOCK_DGRAM is 
+     * used and the L2-header is removed by kernel (man 7 packet). */
     if((sockfd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) == -1){
         //perror("Error creating raw socket:");
         MULTI_DEBUG_PRINT(stderr,"Error creating raw socket.\n");
         return -1;
     }
 
-    /* Use this opertunity to get MAC-address of this interface. Stored in the chaddr-field of every DHCP packet */
+    /* Use this opertunity to get MAC-address of this interface. Stored in the 
+     * chaddr-field of every DHCP packet */
     if(ioctl(sockfd, SIOCGIFHWADDR, &ifq) == -1){
         //perror("Could not get info on interface");
         MULTI_DEBUG_PRINT(stderr,"Could not get info on interface\n");
@@ -238,21 +249,26 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, struct multi_dh
 
     //Create the filter
     static const struct sock_filter only_dhcp[] = {
-        //The best reference for this is the original paper, as well as the
+        //The best reference to BPF is the original paper, as well as the
         //example I found in LinuxJournal
-        //BPF_STMT(BPF_LDX | BPF_IMM | BPF_K, 8),
-        //BPF_STMT(BPF_LD | BPF_B | BPF_IND, 1), //Load the protocol into the accumulator (but use relative position 9)
 
-        BPF_STMT(BPF_LD | BPF_B | BPF_ABS, 9), //Load the protocol into the accumulator (absolute position 9)
-        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, IPPROTO_UDP, 0, 3), //Compare accumulator with k, 
-
-        BPF_STMT(BPF_LDX | BPF_B | BPF_MSH, 0), //MSH is this 4*[k]0xf syntax, a hack for the IP header. Load it into counter
-        BPF_STMT(BPF_LD | BPF_W | BPF_IND, 0), //Load the source and destionation port into accumulator, pos. relative to counter
-        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, BOOTP_PORT_PAIR, 1, 0), //Compare both ports at once
+        //Load the protocol into the accumulator (absolute position 9)
+        BPF_STMT(BPF_LD | BPF_B | BPF_ABS, 9), 
+        //Compare accumulator with k,
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, IPPROTO_UDP, 0, 3),  
+        //MSH is this 4*[k]0xf syntax, a hack for the IP header. Load it into counter
+        BPF_STMT(BPF_LDX | BPF_B | BPF_MSH, 0), 
+        //Load the source and destionation port into accumulator, pos. relative to counter
+        BPF_STMT(BPF_LD | BPF_W | BPF_IND, 0), 
+        //Compare both ports at once
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, BOOTP_PORT_PAIR, 1, 0), 
 
         //Return statements
-        BPF_STMT(BPF_RET | BPF_K, 0), //Ignore the packet
-        BPF_STMT(BPF_RET | BPF_K, 0xffffffff), //Let the packet through (the value is the number of bytes to let through, set to high value)
+        //Ignore the packet
+        BPF_STMT(BPF_RET | BPF_K, 0), 
+        //Let the packet through (the value is the number of bytes to let 
+        //through, set to high value)
+        BPF_STMT(BPF_RET | BPF_K, 0xffffffff), 
     };
 
     static const struct sock_fprog only_dhcp_prog = {
@@ -260,13 +276,15 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li, struct multi_dh
         .len = sizeof(only_dhcp) / sizeof(only_dhcp[0]),
     };
 
-    if(setsockopt(sockfd, SOL_SOCKET, SO_ATTACH_FILTER, &only_dhcp_prog, sizeof(only_dhcp_prog)) == -1){
+    if(setsockopt(sockfd, SOL_SOCKET, SO_ATTACH_FILTER, &only_dhcp_prog, 
+                sizeof(only_dhcp_prog)) == -1){
         MULTI_DEBUG_PRINT(stderr, "Could not attach netlink filter\n");
         perror("Msg: ");
         return -1;
     }
 
-    memcpy(&(di->mac_addr), &(ifq.ifr_hwaddr.sa_data), sizeof(ifq.ifr_hwaddr.sa_data));
+    memcpy(&(di->mac_addr), &(ifq.ifr_hwaddr.sa_data), 
+            sizeof(ifq.ifr_hwaddr.sa_data));
 
     //Will be moved to main, does not belong here
     di->ifidx = li->ifi_idx;
@@ -304,8 +322,10 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
         return -1;
     }
 
-    if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, li->dev_name, strlen(li->dev_name) + 1) < 0){
-        MULTI_DEBUG_PRINT(stderr,"Could not bind sock to interface %s (idx %u)\n", li->dev_name, li->ifi_idx);
+    if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, li->dev_name, 
+                strlen(li->dev_name) + 1) < 0){
+        MULTI_DEBUG_PRINT(stderr,"Could not bind sock to interface %s "
+                "(idx %u)\n", li->dev_name, li->ifi_idx);
         return -1;
     }
 
@@ -316,12 +336,14 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
     if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr))){
         close(sock);
         //perror("Could not bind socket to port");
-        MULTI_DEBUG_PRINT(stderr,"Could not bind socket to port for interface %s (idx %u)", li->dev_name, li->ifi_idx);
+        MULTI_DEBUG_PRINT(stderr,"Could not bind socket to port for interface "
+                "%s (idx %u)", li->dev_name, li->ifi_idx);
         return -1;
     }
 
     if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &i, sizeof(i)) < 0)
-        MULTI_DEBUG_PRINT(stderr,"Could not set SO_REUSEADDR on socket %d for interface %s (idx %u)\n", sock, li->dev_name, li->ifi_idx);
+        MULTI_DEBUG_PRINT(stderr,"Could not set SO_REUSEADDR on socket %d for "
+                "interface %s (idx %u)\n", sock, li->dev_name, li->ifi_idx);
 
     return sock;
 }

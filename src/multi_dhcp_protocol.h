@@ -23,18 +23,30 @@
 
 #include <stdint.h>
 
-/* The options I am interested in (domain is just my domain, for example simula.no) */
-static char multi_dhcp_optlist[] = { BOOTP_OPTION_NETMASK, BOOTP_OPTION_GATEWAY, BOOTP_OPTION_DNS,
-			  BOOTP_OPTION_HOSTNAME, BOOTP_OPTION_DOMAIN, BOOTP_OPTION_BROADCAST,
-			  DHCP_OPTION_LEASE, DHCP_OPTION_T1, DHCP_OPTION_T2 };
+/* The options I am interested in (domain is just my domain, 
+ * for example simula.no) */
+static char multi_dhcp_optlist[] = { 
+    BOOTP_OPTION_NETMASK, 
+    BOOTP_OPTION_GATEWAY, 
+    BOOTP_OPTION_DNS,
+	BOOTP_OPTION_HOSTNAME, 
+    BOOTP_OPTION_DOMAIN, 
+    BOOTP_OPTION_BROADCAST,
+	DHCP_OPTION_LEASE, 
+    DHCP_OPTION_T1, 
+    DHCP_OPTION_T2 
+};
 
-/* Creates a dhcp msg and sends it over the network through the interface specified by di */
+/* Creates a dhcp msg and sends it over the network through the interface 
+ * specified by di */
 int32_t multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
 
 /* Parses the options in msg and stores them in cfg */
-static void multi_dhcp_parse_options(struct multi_dhcp_message *msg, struct multi_dhcp_config *cfg);
+static void multi_dhcp_parse_options(struct multi_dhcp_message *msg, 
+        struct multi_dhcp_config *cfg);
 
 /* Parses the message and stores relevant information in di */
-void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di, struct multi_dhcp_message *dm, struct multi_link_info *li);
+void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di, 
+        struct multi_dhcp_message *dm, struct multi_link_info *li);
 
 #endif
