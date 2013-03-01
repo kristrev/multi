@@ -4,8 +4,8 @@ MULTI Network Manager
 MULTI Network Manager (MNM) is a command line network manager for Linux, with
 support for multihoming (currently IPv4 only). It automatically detects new
 network interfaces, acquires an IP (using for example DHCP or read from config
-file) and configures the routing table(s) accordingly, using Netlink-messages.
-MNM supports the following command line options:
+file) and configures the routing table(s) accordingly, using
+Netlink/RTNetlink-messages.  MNM supports the following command line options:
 
 * -d : Run MNM as daemon. Log-messages are written to /var/log/multi.log.
 * -u : Ensure that each interface is assigned a unique IP. Use this one with
@@ -51,8 +51,8 @@ Future work
   he or she provides an incorrect route. This is due to some tricky message
   handling that I have not decided on how to deal with yet. Some
   RTNETLINK-messages generate replies, while others don't.
-* General code clean-up: The code has proven to be stable (used in our test
-  network for over a year now) and without memory leaks, but the overall
+* General code clean-up: The application has proven to be stable (used in a scientific
+  test network for over a year now) and without memory leaks, but the overall
   structure still bears the marks of mostly being written during a PhD.
 
 Motivation
