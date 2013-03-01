@@ -1,6 +1,6 @@
 #Each entry has to start with the interface name, newline and then the options
 #Valid options are:
-#- (address, netmask, gateway): If one is present, the other two has to be there
+#- (address, netmask, gateway): Only address and netmask is required
 #- metric: desired metric for interface (must be between 1 and 32)
 #- proto: either static or other. latter means that multi assumes how to get IP.
 
