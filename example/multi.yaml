@@ -1,0 +1,28 @@
+#Each entry has to start with the interface name, newline and then the options
+#Valid options are:
+#- (address, netmask, gateway): If one is present, the other two has to be there
+#- metric: desired metric for interface (must be between 1 and 32)
+#- proto: either static or other. latter means that multi assumes how to get IP.
+
+eth0:
+    proto: 'other'
+#    address: 10.110.111.2
+#    netmask: 255.255.255.0
+#    gateway: 10.110.111.1
+    metric: 32
+
+ppp0:
+    proto: 'other'
+    metric: 1
+
+ppp1:
+    proto: 'other'
+    metric: 2
+
+ppp2:
+    proto: 'other'
+    metric: 3
+
+ppp3:
+    proto: 'other'
+    metric: 4
