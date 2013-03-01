@@ -105,7 +105,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
             tv.tv_usec = 0;
 
             if(di->output_timer){
-                MULTI_DEBUG_PRINT(stderr,"Next timeout will expire in %u sec"
+                MULTI_DEBUG_PRINT(stderr,"Next timeout will expire in %u sec "
                         "on interface %s (iface idx %u)\n", 
                         (uint32_t) tv.tv_sec, li->dev_name, li->ifi_idx);
                 di->output_timer = 0;
@@ -260,11 +260,11 @@ void* multi_dhcp_main(void *arg){
     }
    
     if(di.state == REBOOT_DHCP){
-        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP REBOOT on interface %s" 
+        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP REBOOT on interface %s " 
                 "(iface idx %u). RAW socket: %u UDP socket: %u\n", li->dev_name,
                 li->ifi_idx, di.raw_sock, di.udp_sock);
     } else{
-        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP on interface %s (iface idx" 
+        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP on interface %s (iface idx " 
                 "%u). RAW socket: %u UDP socket: %u\n", li->dev_name, 
                 li->ifi_idx, di.raw_sock, di.udp_sock);
     }
