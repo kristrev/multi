@@ -277,7 +277,6 @@ void multi_link_configure_link(struct multi_link_info *li){
         MULTI_DEBUG_PRINT(stderr, "Not setting gateway for %s (idx %u)\n", 
                 li->dev_name, li->ifi_idx); 
     } else {
-        printf("Gateway %u\n", li->cfg.gateway.s_addr);
         multi_link_modify_gateway(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
                 RT_TABLE_MAIN, li, li->metric);
         multi_link_modify_gateway(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
