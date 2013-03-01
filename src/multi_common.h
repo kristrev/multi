@@ -20,24 +20,46 @@
 #define MAX_BUFSIZE 1500
 
 typedef enum{
-    LINK_DOWN=0, //Initial state, link cannot be used (can still be up and running)
-    LINK_UP, //Link is ready and can be used
-    LINK_DOWN_PPP, //Signal that information about the PPP interface must be collected. Needed to restore state, because of non-working nested wilddump/filter
-    LINK_DOWN_AP, //Singal that information about a wireless ap interface must be collected
-    LINK_INVALID, //Link has lost its current IP address and cant be used
-    WAITING_FOR_DHCP, //If DHCP is to be used on this link, indicates that link is waiting for DHCP to finish
-    GOT_IP_DHCP, //DHCP has finished successfully, info store in cfg and the main thread will configure interface
-	GOT_IP_STATIC, //Has a static IP address
-    GOT_IP_PPP, //This is a PPP interface, which will be given an IP automaticually
-    GOT_IP_AP, //Got the information about the wireless access point interface
-    DHCP_FAILED, //DHCP failed, the application will ignore this interface forever (for now). Decide if it should be freed?
-    DHCP_IP_CHANGED, //DHCP got a new IP after a RENEW/REBIND, must first flush then add new info
-    DHCP_IP_INVALID, //DHCP lease has expired and a new IP has not been received. This does not mean that the interface is down, but it cant be used!
-	LINK_UP_STATIC, //Link is up and with a static IP (used to avoid seg fault when link goes down!)
-    LINK_UP_PPP, //Same as above, but for PPP
-    LINK_UP_AP, //Access point is up and configured
-    REBOOT_DHCP, //Interface has previously been allocated an IP, try to reuse that one
-    DELETE_LINK //The link module has marked this link for deletion (needed because g_slist_foreach is not safe)
+    //Initial state, link cannot be used (can still be up and running)
+    LINK_DOWN=0,
+    //Link is ready and can be used
+    LINK_UP, 
+    //Signal that information about the PPP interface must be collected. Needed to restore state, because of non-working nested wilddump/filter
+    LINK_DOWN_PPP, 
+    //Signal that information about a wireless ap interface must be collected
+    LINK_DOWN_AP,
+    //Link has lost its current IP address and cant be used
+    LINK_INVALID, 
+    //If DHCP is to be used on this link, indicates that link is waiting for DHCP to finish
+    WAITING_FOR_DHCP, 
+    //DHCP has finished successfully, info store in cfg and the main thread will configure interface
+    GOT_IP_DHCP, 
+	//Has a static IP address
+    GOT_IP_STATIC, 
+    //This is a PPP interface, which will be given an IP automaticually
+    GOT_IP_PPP, 
+    //Got the information about the wireless access point interface
+    GOT_IP_AP, 
+    //DHCP failed, the application will ignore this interface forever (for now). 
+    //TODO: Decide if it should be freed.
+    DHCP_FAILED, 
+    //DHCP got a new IP after a RENEW/REBIND, must first flush then add new info
+    DHCP_IP_CHANGED, 
+    //DHCP lease has expired and a new IP has not been received. This does not 
+    //mean that the interface is down, but it cant be used!
+    DHCP_IP_INVALID, 
+	//Link is up and with a static IP (used to avoid seg fault when link goes 
+    //down!)
+    LINK_UP_STATIC, 
+    //Same as above, but for PPP
+    LINK_UP_PPP, 
+    //Access point is up and configured
+    LINK_UP_AP, 
+    //Interface has previously been allocated an IP, try to reuse that one
+    REBOOT_DHCP, 
+    //The link module has marked this link for deletion (needed because 
+    //g_slist_foreach is not safe)
+    DELETE_LINK 
 } link_state;
 
 #define MULTI_LOG_PREFIX "[%d:%d:%d %d/%d/%d %s:%d]: "
@@ -45,6 +67,13 @@ typedef enum{
 #define MULTI_DEBUG_PRINT2(fd, ...){fprintf(fd, __VA_ARGS__);fflush(fd);}
 //The ## is there so that I dont have to fake an argument when I use the macro
 //on string without arguments!
-#define MULTI_DEBUG_PRINT(fd, _fmt, ...){time_t rawtime; struct tm *curtime; time(&rawtime); curtime = gmtime(&rawtime); MULTI_DEBUG_PRINT2(fd, MULTI_LOG_PREFIX _fmt, curtime->tm_hour, curtime->tm_min, curtime->tm_sec, curtime->tm_mday, curtime->tm_mon + 1, 1900 + curtime->tm_year, MULTI_LOG_PREFIX_ARG, ##__VA_ARGS__);}
-
+#define MULTI_DEBUG_PRINT(fd, _fmt, ...){ \
+    time_t rawtime; \
+    struct tm *curtime; \
+    time(&rawtime); \
+    curtime = gmtime(&rawtime); \
+    MULTI_DEBUG_PRINT2(fd, MULTI_LOG_PREFIX _fmt, curtime->tm_hour, \
+            curtime->tm_min, curtime->tm_sec, curtime->tm_mday, \
+            curtime->tm_mon + 1, 1900 + curtime->tm_year, \
+            MULTI_LOG_PREFIX_ARG, ##__VA_ARGS__);}
 #endif
