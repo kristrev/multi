@@ -34,7 +34,7 @@ libmnl. If you are using Ubuntu or Debian, the package names are libiw-dev,
 libglib2.0-dev, libyaml-dev and libmnl-dev. Then, either use cmake or normal
 make directly to compile MNM.
 
-Note that the versions referenced in the CMake-file are those I have used
+Note that the library versions referenced in the CMake-file are those I have used
 when working on MNM lately. Please let me know if it MNM compiles and works with
 older versions, and I will update the CMake-file.
 
