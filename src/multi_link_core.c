@@ -344,7 +344,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
      * See linux/if_arp.h for different definitions */
     if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
         if_indextoname(ifi->ifi_index, if_name);
-        MULTI_DEBUG_PRINT(stderr, "Interface has no ARP header, most likely a tunnel, ignoring (%s)\n", if_name);
+        MULTI_DEBUG_PRINT(stderr, "Interface has no ARP header, most likely a "
+                "tunnel, ignoring (%s)\n", if_name);
         return;
     }
 
@@ -362,8 +363,12 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     if(tb[IFLA_OPERSTATE]){
         iface_state = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
 
-        /* Check linux/Documentation/networking/operstates.txt. IFF_RUNNING wraps both YP and UNKNOWN*/
-        if (ifi->ifi_flags & IFF_RUNNING){
+        /* Check linux/Documentation/networking/operstates.txt. IFF_RUNNING 
+         * wraps both UP and UNKNOWN*/
+        if (ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
+                        (list_tmp = g_slist_find_custom(
+                            multi_shared_static_links, if_name, 
+                            multi_link_cmp_devname)))){
             MULTI_DEBUG_PRINT(stderr, "Interface %s (%u) is up and running, "
                     "length %u\n", if_name, ifi->ifi_index, 
                     g_slist_length(multi_link_links));
@@ -383,7 +388,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
 
             if(g_slist_length(multi_link_links) < MAX_NUM_LINKS){
-                if((list_tmp = g_slist_find_custom(multi_shared_static_links, 
+                if(list_tmp != NULL || (list_tmp = g_slist_find_custom(
+                                multi_shared_static_links, 
                                 if_name, multi_link_cmp_devname))){
                     li_static = list_tmp->data;
                     li = multi_link_create_new_link(if_name, li_static->metric);
@@ -391,7 +397,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     /* Allocate a new link, add to list and start DHCP */
                     li = multi_link_create_new_link(if_name, 0);
                 
-                //The order in which links are stored in this list is not important
+                //The order in which links are stored in this list is not 
+                //important
                 multi_link_links = g_slist_prepend(multi_link_links, 
                         (gpointer) li); 
 

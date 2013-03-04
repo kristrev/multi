@@ -11,6 +11,12 @@ eth0:
 #    gateway: 10.110.111.1
     metric: 32
 
+wwan0:
+    proto: 'static'
+    address: 10.110.111.2
+    netmask: 255.255.255.0
+    gateway: 10.110.111.1
+
 ppp0:
     proto: 'other'
     metric: 1

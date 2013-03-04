@@ -118,7 +118,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     uint8_t operstate;
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
-	GSList *li_static_tmp;
+	GSList *li_static_tmp = NULL;
     uint8_t wireless_mode = 0;
 
     /* Tunneling interfaces have no ARP header, so they can be ignored, 
@@ -147,11 +147,17 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         operstate = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
 
         //Interface is up, do normal operation
-        if(ifi->ifi_flags & IFF_RUNNING){
-            //Assume that there is initially always room for every link. Maybe
-            //change?
-            if((li_static_tmp = g_slist_find_custom(multi_shared_static_links, 
-                            devname, multi_link_cmp_devname))){
+        //Last one is for interfaces that are UP, but not running (for example
+        //no LAN cable)
+        if(ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
+                    (li_static_tmp = g_slist_find_custom(
+                        multi_shared_static_links, devname, 
+                        multi_link_cmp_devname)))){
+            
+            //TODO: Assumes that there is initially always room for every link
+            if(li_static_tmp != NULL || (li_static_tmp = 
+                        g_slist_find_custom(multi_shared_static_links, devname,
+                            multi_link_cmp_devname))){
                 li_static = li_static_tmp->data;
                 li = multi_link_create_new_link(devname, li_static->metric);
             } else 
