@@ -11,7 +11,7 @@ Netlink/RTNetlink-messages.  MNM supports the following command line options:
 * -u : Ensure that each interface is assigned a unique IP. Use this one with
   care, as DHCP has no way to gracefully reject an IP address. Instead, DHCP
   DECLINE is used, which causes DHCP servers to blacklist IP addresses.
-* -y filename : Provide a configuration file allowing you to specify which
+* -c filename : Provide a configuration file allowing you to specify which
   interfaces shall be assigned a static IP (and the IP of course), as well as 
   static metrics. An example configuration file is in the /examples-directory.
 
