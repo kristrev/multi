@@ -334,7 +334,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     uint8_t iface_state = 0;
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
-    GSList *list_tmp;
+    GSList *list_tmp = NULL;
     pthread_attr_t detach_attr;
     uint8_t wireless_mode = 0;
 
