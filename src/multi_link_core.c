@@ -750,7 +750,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
                     numbytes = mnl_socket_recvfrom(multi_link_nl_request, 
                             mnl_buf, sizeof(mnl_buf));
                 } else if(i == multi_link_dhcp_pipes[0]){
-                    read(i, buf, MAX_PIPE_MSG_LEN);
+                    numbytes = read(i, buf, MAX_PIPE_MSG_LEN);
                     g_slist_foreach(multi_link_links, multi_link_check_link, 
                             mc);
                     multi_link_clean_links();
