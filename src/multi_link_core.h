@@ -45,9 +45,6 @@ GSList *multi_link_links;
 //The pipe used for communication between dhcp and link module
 int32_t multi_link_dhcp_pipes[2]; 
 
-static uint8_t multi_link_check_unique(struct multi_link_info *li, 
-        uint8_t update);
-static int32_t multi_link_event_loop(struct multi_config *mc);
 void *multi_link_init(void *arg);
 //This is also needed by filter
 struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
