@@ -81,7 +81,6 @@ extern void multi_link_free_ip_info(struct ip_info *ip_info);
 //multi_dhcp_main
 extern void* multi_dhcp_main(void *arg); 
 
-//This function must return a value to indicate failure
 int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg){
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     int32_t ret;
