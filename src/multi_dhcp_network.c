@@ -31,6 +31,7 @@
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /* taken from iputils which basically copied it from RFC 1071 */
 static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, 
@@ -65,14 +66,15 @@ static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len,
 }
 
 void multi_dhcp_notify_link_module(int32_t pipe_fd){
-    write(pipe_fd, "a", 1);
+    if(write(pipe_fd, "a", 1) < 0){
+        MULTI_DEBUG_PRINT(stderr, "Could not notify link module\n");
+    }
 }
 
 int multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if, 
         struct multi_dhcp_message *msg, uint8_t broadcast) {
     int length =  msg->pos - &msg->op;
     uint16_t checksum;
-    uint32_t i;
 
     struct {
         struct iphdr ip;
@@ -224,12 +226,11 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
         struct multi_dhcp_info *di){
     struct ifreq ifq;
     int32_t sockfd = 0;
-    uint8_t *hwaddr;
     struct sockaddr_ll sll;
 
     memset(&sll, 0, sizeof(sll));
     memset(&ifq, 0, sizeof(ifq));
-    memcpy(&ifq.ifr_name, li->dev_name, strlen(li->dev_name) + 1);
+    memcpy(&ifq.ifr_name, li->dev_name, strlen((char*) li->dev_name) + 1);
     
     /* Since I am (currently) not interested in the L2-header, SOCK_DGRAM is 
      * used and the L2-header is removed by kernel (man 7 packet). */
@@ -307,7 +308,6 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
     struct sockaddr_in addr;
     int sock;
     int i = 1;
-    struct ifreq ifr;
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == -1){ 
@@ -323,7 +323,7 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
     }
 
     if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, li->dev_name, 
-                strlen(li->dev_name) + 1) < 0){
+                strlen((char*) li->dev_name) + 1) < 0){
         MULTI_DEBUG_PRINT(stderr,"Could not bind sock to interface %s "
                 "(idx %u)\n", li->dev_name, li->ifi_idx);
         return -1;

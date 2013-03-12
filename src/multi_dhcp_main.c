@@ -33,7 +33,7 @@
 #include <pthread.h>
 #include <glib.h>
 
-extern int32_t multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
+extern void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
 extern int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, 
         struct multi_dhcp_message *dhcp_msg);
 extern void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di, 

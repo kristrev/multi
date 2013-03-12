@@ -39,7 +39,7 @@ static char multi_dhcp_optlist[] = {
 
 /* Creates a dhcp msg and sends it over the network through the interface 
  * specified by di */
-int32_t multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
+void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
 
 /* Parses the options in msg and stores them in cfg */
 static void multi_dhcp_parse_options(struct multi_dhcp_message *msg, 

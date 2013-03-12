@@ -123,9 +123,8 @@ static void multi_dhcp_dm_finish_options(struct multi_dhcp_message *msg) {
     *msg->pos++ = 255;
 }
 
-int32_t multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
+void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
     struct multi_dhcp_message dhcp_msg;
-    uint8_t *hwaddr;
     uint8_t dhcp_type;
     uint8_t iface_id[7];
     struct in_addr ipaddr;
@@ -185,7 +184,7 @@ int32_t multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
 
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
 
-            inet_ntop(AF_INET, &di->cfg.address, ip_addr, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &di->cfg.address, (char*) ip_addr, INET_ADDRSTRLEN);
             MULTI_DEBUG_PRINT(stderr,"REBOOTING and requesting %s, Sending "
                     "DHCP REQUEST (iface idx %u).\n", ip_addr, di->ifidx);
             di->output_timer = 1;
@@ -382,7 +381,6 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
         struct multi_dhcp_message *dm, struct multi_link_info *li){
     struct multi_dhcp_config cfg;
     uint32_t t_now, t_diff;
-    uint8_t ifconfig_cmd[1500];
     uint8_t ipaddr[INET_ADDRSTRLEN];
     uint8_t baddr[INET_ADDRSTRLEN];
     uint8_t gwaddr[INET_ADDRSTRLEN];
@@ -449,10 +447,10 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
                 
                 di->state = BOUND;
                 
-                inet_ntop(AF_INET, &(cfg.address), ipaddr, INET_ADDRSTRLEN);
-                inet_ntop(AF_INET, &(cfg.broadcast), baddr, INET_ADDRSTRLEN);
-                inet_ntop(AF_INET, &(cfg.gateway), gwaddr, INET_ADDRSTRLEN);
-                inet_ntop(AF_INET, &(cfg.netmask), netmask, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, &(cfg.address), (char*) ipaddr, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, &(cfg.broadcast), (char*) baddr, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, &(cfg.gateway), (char*) gwaddr, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, &(cfg.netmask), (char*) netmask, INET_ADDRSTRLEN);
                 
                 //Do the timeout calculation. Be warned that inet_ntoa is NOT
                     //reentrant. In other words, the IP adresses are wrong!

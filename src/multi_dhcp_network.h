@@ -35,10 +35,6 @@ int32_t multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, int from_if,
 int32_t multi_dhcp_snd_msg_udp(int sock, struct in_addr *to, 
         struct multi_dhcp_message *msg);
 
-/* IPv4 checksumming */
-static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, 
-        uint16_t csum);
-
 /* Receives DHCP messages. The message is stored in ms and function returns 0 on
  * success, -1 otherwise */
 int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, 
