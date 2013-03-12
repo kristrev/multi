@@ -25,6 +25,7 @@
 #include <string.h>
 #include <iwlib.h>
 #include <libmnl/libmnl.h>
+#include <arpa/inet.h>
 
 #include "multi_shared.h"
 #include "multi_link_core.h"
@@ -61,7 +62,7 @@ uint8_t multi_link_check_wlan_mode(uint8_t *dev_name){
 
     if((wlan_sock = iw_sockets_open()) > 0)
         //This can be optimised, MODE is just a normal ioctl
-        if(!iw_get_basic_config(wlan_sock, dev_name, &wcfg))
+        if(!iw_get_basic_config(wlan_sock, (char*) dev_name, &wcfg))
             if(wcfg.mode == 3 || wcfg.mode == 6)
                 return wcfg.mode;
 
@@ -77,34 +78,15 @@ static gint multi_link_cmp_ifidx(gconstpointer a, gconstpointer b){
     if((li->state != GOT_IP_PPP && li->state != GOT_IP_AP) && li->ifi_idx == 
             ifa->ifa_index)
         return 0;
-}
-
-static gint multi_link_cmp_ipaddr(gconstpointer a, gconstpointer b){
-    struct multi_link_info *li = (struct multi_link_info *) a;
-    uint32_t *ip_addr_cmp = (uint32_t *) b;
-
-    MULTI_DEBUG_PRINT(stderr, "Comparing %u with %u\n", li->cfg.address.s_addr, 
-            *ip_addr_cmp);
-
-    //Comparing IP address will of course NOT work. This function is only used
-    //on flush, which is done BEFORE DHCP is run!
-    if(li->cfg.address.s_addr == *ip_addr_cmp)
-        return 0;
-}
-
-static gint multi_link_cmp_oif(gconstpointer a, gconstpointer b){
-    struct multi_link_info *li = (struct multi_link_info *) a;
-    uint32_t *oif = (uint32_t *) b;
-
-    if(li->ifi_idx == *oif)
-        return 0;
+    else
+        return 1;
 }
 
 static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
 	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
 	uint8_t *dev_name = (uint8_t *) b;
 
-	if(!g_strcmp0(li->dev_name, dev_name))
+	if(!g_strcmp0((char*) li->dev_name, (char*) dev_name))
 		return 0;
 	else
 		return 1;
@@ -115,7 +97,6 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct ifinfomsg *ifi = mnl_nlmsg_get_payload(nlh);
     uint8_t devname[IFNAMSIZ];
-    uint8_t operstate;
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
 	GSList *li_static_tmp = NULL;
@@ -128,7 +109,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         return MNL_CB_OK;
 
     //Check for WLAN
-    if_indextoname(ifi->ifi_index, devname);
+    if_indextoname(ifi->ifi_index, (char*) devname);
 
     if((wireless_mode = multi_link_check_wlan_mode(devname)))
         if(wireless_mode == 6){
@@ -138,14 +119,12 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         }
 
     //Ignore incoming interfaces too
-    if(strstr(devname, "ifb"))
+    if(strstr((char*) devname, "ifb"))
         return MNL_CB_OK;
 
     mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
     if(tb[IFLA_OPERSTATE]){
-        operstate = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
-
         //Interface is up, do normal operation
         //Last one is for interfaces that are UP, but not running (for example
         //no LAN cable)
@@ -240,12 +219,12 @@ int32_t multi_link_filter_ppp(const struct nlmsghdr *nlh, void *data){
         
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.address;
-        inet_ntop(AF_INET, &(sa.sin_addr), addr_buf, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
         MULTI_DEBUG_PRINT(stderr, "Local address: %s \n", addr_buf);
 
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.broadcast;
-        inet_ntop(AF_INET, &(sa.sin_addr), addr_buf, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
         MULTI_DEBUG_PRINT(stderr, "Remote address: %s\n", addr_buf);
     }
 
@@ -285,12 +264,12 @@ int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data){
 
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.address;
-        inet_ntop(AF_INET, &(sa.sin_addr), addr_buf, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
         MULTI_DEBUG_PRINT(stderr, "Local address: %s \n", addr_buf);
 
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.netmask;
-        inet_ntop(AF_INET, &(sa.sin_addr), addr_buf, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
         MULTI_DEBUG_PRINT(stderr, "Netmask: %s\n", addr_buf);
     }
 
@@ -302,15 +281,12 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
     struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
-    uint32_t ipaddr = 0;
     struct nlmsghdr *nlh_tmp;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
     if(!(tb[FRA_SRC]))
         return MNL_CB_OK;
-
-    ipaddr = mnl_attr_get_u32(tb[FRA_SRC]);
 
     //Delete ANY rule which does not point to one of the default tables
     if(rt->rtm_table > 0 && rt->rtm_table < 253){
@@ -331,7 +307,6 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
-    uint32_t oif;
     struct nlmsghdr *nlh_tmp;
 
     //Ignore table 255 (local). It is updated automatically as IPs are
@@ -345,8 +320,6 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     mnl_attr_parse(nlh, sizeof(*table_i), multi_link_fill_rtattr, tb);
 
     if(tb[RTA_OIF]){
-        oif = mnl_attr_get_u32(tb[RTA_OIF]);
-
         //Clear out the whole routing table, multi will control everything!
         nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
