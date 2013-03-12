@@ -97,13 +97,15 @@ int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg){
 
         ret = mnl_socket_recvfrom(multi_link_nl_request, buf, sizeof(buf));
     }
+
+    return 1;
 }
 
 static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
 	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
 	uint8_t *dev_name = (uint8_t *) b;
 
-	if(!g_strcmp0(li->dev_name, dev_name))
+	if(!g_strcmp0((char*) li->dev_name, (char*) dev_name))
 		return 0;
 	else
 		return 1;
@@ -112,13 +114,12 @@ static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
 static void multi_link_notify_probing(int32_t probe_pipe, uint32_t ifi_idx, 
         link_state state){
     uint8_t buffer[sizeof(ifi_idx) + 1];
-    int32_t numbytes;
 
     buffer[0] = state;
     memcpy((buffer + 1), &ifi_idx, sizeof(ifi_idx));
-    numbytes = write(probe_pipe, buffer, sizeof(buffer));
-
-    //fprintf(stderr, "Wrote %d bytes to pipe\n", numbytes);
+    if(write(probe_pipe, buffer, sizeof(buffer)) < 0){
+        MULTI_DEBUG_PRINT(stderr, "Could not send link notification\n"); 
+    }
 }
 
 /* Check for PPP and call get_info  */
@@ -157,13 +158,15 @@ static uint8_t multi_link_check_unique(struct multi_link_info *li,
         //Avoid comparing li with li. Locking in case a dhcp thread is about to
         //change info
         g_static_rw_lock_reader_lock(&(li->state_lock));
-        if(li->ifi_idx != li_tmp->ifi_idx)
+        if(li->ifi_idx != li_tmp->ifi_idx){
             if(update)
                  unique = !(li->new_cfg.address.s_addr == 
                          li_tmp->new_cfg.address.s_addr);
-            else
+             else
                  unique = !(li->cfg.address.s_addr == 
                          li_tmp->cfg.address.s_addr);
+        }
+
         g_static_rw_lock_reader_unlock(&(li->state_lock));
 
         if(!unique)
@@ -190,7 +193,9 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
                 !multi_link_check_unique(li, 0)){
             li->state = WAITING_FOR_DHCP;
             memset(&li->cfg, 0, sizeof(li->cfg));
-            write(li->decline_pipe[1], "a", 1);
+            if(write(li->decline_pipe[1], "a", 1) < 0){
+                MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
+            }
             g_static_rw_lock_reader_unlock(&(li->state_lock));
             return;
         }
@@ -216,7 +221,9 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
 
         if(mc->unique && !multi_link_check_unique(li, 1)){
             li->state = WAITING_FOR_DHCP;
-            write(li->decline_pipe[1], "a", 1);
+            if(write(li->decline_pipe[1], "a", 1) < 0){
+                MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
+            }
             g_static_rw_lock_reader_unlock(&(li->state_lock));
             return;
         }
@@ -310,13 +317,13 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
         //be one metric available if the code gets here
         li->metric = ffs(~multi_shared_metrics_set);
         //ffs starts indexing from 1
-        multi_shared_metrics_set ^= 1 << li->metric - 1;
+        multi_shared_metrics_set ^= 1 << (li->metric - 1);
     }
     
     li->state = WAITING_FOR_DHCP;
-    li->ifi_idx = if_nametoindex(dev_name);
+    li->ifi_idx = if_nametoindex((char*) dev_name);
     li->write_pipe = multi_link_dhcp_pipes[1];
-    memcpy(&(li->dev_name), dev_name, strlen(dev_name));
+    memcpy(&(li->dev_name), dev_name, strlen((char*) dev_name));
     g_static_rw_lock_init(&(li->state_lock));
 
     if(pipe(li->decline_pipe) < 0){
@@ -343,16 +350,16 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     /* Tunneling interfaces have no ARP header, so they can be ignored. 
      * See linux/if_arp.h for different definitions */
     if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
-        if_indextoname(ifi->ifi_index, if_name);
+        if_indextoname(ifi->ifi_index, (char*) if_name);
         MULTI_DEBUG_PRINT(stderr, "Interface has no ARP header, most likely a "
                 "tunnel, ignoring (%s)\n", if_name);
         return;
     }
 
-    if_indextoname(ifi->ifi_index, if_name);
+    if_indextoname(ifi->ifi_index, (char*) if_name);
   
 
-    if(if_name[0] > 0 && strstr(if_name, "ifb")){
+    if(if_name[0] > 0 && strstr((char*) if_name, "ifb")){
 		MULTI_DEBUG_PRINT(stderr, "Interface %s is incoming, ignoring\n", 
                 if_name);
 		return;
@@ -505,8 +512,7 @@ static void multi_link_populate_links_list(){
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct rtgenmsg *rt;
-    uint32_t seq, portid;
-    int32_t ret;
+    uint32_t seq;
 
     //Initialise properly KRISTIAN!!!!!
     memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
@@ -518,8 +524,6 @@ static void multi_link_populate_links_list(){
     nlh->nlmsg_seq = seq = time(NULL); //How will this work with event? Send 0?
     rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
     rt->rtgen_family = AF_UNSPEC; //I need all interfaces
-
-    portid = mnl_socket_get_portid(multi_link_nl_request);
 
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
         MULTI_DEBUG_PRINT(stderr, "Cannot request info dump\n");
@@ -533,11 +537,6 @@ static void multi_link_del_info(GSList *nlmsg_list, uint16_t nlmsg_type){
     GSList *list_itr = nlmsg_list;
     struct nlmsghdr *nlh;
     uint32_t seq = 0;
-
-    //Testing if there is anything on socket
-    uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
-    uint32_t portid;
-    int32_t ret;
 
     while(list_itr){
         nlh = (struct nlmsghdr *) list_itr->data;
@@ -555,8 +554,7 @@ static int32_t multi_link_flush_links(){
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct rtgenmsg *rt;
-    uint32_t seq, portid;
-    int32_t ret;
+    uint32_t seq;
 
     memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
     memset(&ip_info, 0, sizeof(ip_info));
@@ -568,8 +566,6 @@ static int32_t multi_link_flush_links(){
     nlh->nlmsg_seq = seq = time(NULL); //How will this work with event? Send 0?
     rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
     rt->rtgen_family = AF_INET; //I need all interfaces
-
-    portid = mnl_socket_get_portid(multi_link_nl_request);
 
     //Address
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
@@ -762,7 +758,6 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
 
 /* TODO: Configuration */
 void* multi_link_module_init(void *arg){
-    uint32_t i;
     struct multi_core_sync *mcs = (struct multi_core_sync *) arg;
     //int32_t dev_idx_pipe = mcs->mc->socket_pipe[1];
 
@@ -772,5 +767,7 @@ void* multi_link_module_init(void *arg){
     pthread_cond_signal(&(mcs->sync_cond));
     pthread_mutex_unlock(&(mcs->sync_mutex));
     multi_link_event_loop(mcs->mc); 
+
+    return NULL;
 }
 

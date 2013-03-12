@@ -20,8 +20,6 @@
 #define MAX_RETRANS 10 //Crappy Simula DHCP
 #define REBOOTING_THRESHOLD 2
 
-static void multi_dhcp_setup_random();
 void* multi_dhcp_main(void *arg);
-static void multi_dhcp_cleanup(void *arg);
 
 #endif
