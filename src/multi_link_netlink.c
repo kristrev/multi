@@ -214,8 +214,7 @@ void multi_link_get_iface_info(struct multi_link_info *li){
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct rtgenmsg *rt;
-    uint32_t seq, portid;
-    int32_t ret;
+    uint32_t seq;
 
     //It seems like I cant request one interface, has to dump!
     ////Play with this later and see what is up
