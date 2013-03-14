@@ -41,7 +41,7 @@ older versions, and I will update the CMake-file.
 Notes
 -----
 For MNM to work properly, other network managers (for example GNOME's) must be
-disabled. Also, make sure that no dhclient instances are running on any of the
+disabled, or interfaces have to be configured with a static IP (then MNM will configure properly). Also, make sure that no dhclient instances are running on any of the
 interfaces you want to configure. In order to set interfaces to automatically
 come up, but don't get an IP (i.e., for use with MNM), set them to manual in
 /etc/network/interfaces. For example:
