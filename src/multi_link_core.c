@@ -398,7 +398,11 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                                 multi_shared_static_links, 
                                 if_name, multi_link_cmp_devname))){
                     li_static = list_tmp->data;
-                    li = multi_link_create_new_link(if_name, li_static->metric);
+                    if(li_static->proto == PROTO_IGNORE){
+                        MULTI_DEBUG_PRINT(stderr, "Ignoring %s\n", if_name);
+                        return;
+                    } else
+                        li = multi_link_create_new_link(if_name, li_static->metric);
                 } else 
                     /* Allocate a new link, add to list and start DHCP */
                     li = multi_link_create_new_link(if_name, 0);

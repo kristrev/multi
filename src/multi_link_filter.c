@@ -82,6 +82,16 @@ static gint multi_link_cmp_ifidx(gconstpointer a, gconstpointer b){
         return 1;
 }
 
+static gint multi_link_cmp_ifidx_int(gconstpointer a, gconstpointer b){
+    struct multi_link_info *li = (struct multi_link_info *) a;
+    uint32_t *ifiIdx = (uint32_t*) b;
+
+    if(li->ifi_idx == *ifiIdx)
+        return 0;
+    else
+        return 1;
+}
+
 static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
 	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
 	uint8_t *dev_name = (uint8_t *) b;
@@ -138,14 +148,19 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                         g_slist_find_custom(multi_shared_static_links, devname,
                             multi_link_cmp_devname))){
                 li_static = li_static_tmp->data;
-                li = multi_link_create_new_link(devname, li_static->metric);
+                if(li_static->proto == PROTO_IGNORE){
+                    MULTI_DEBUG_PRINT(stderr, "Ignoring %s (idx %d) \n", 
+                            devname, ifi->ifi_index);
+                    return MNL_CB_OK;
+                } else 
+                    li = multi_link_create_new_link(devname, li_static->metric);
             } else 
                 /* Allocate a new link, add to list and start DHCP */
                 li = multi_link_create_new_link(devname, 0);
 
 			/* If link exists in static link list, set link to GOT_STATIC */
 			if(li_static != NULL && li_static->proto == PROTO_STATIC){
-				MULTI_DEBUG_PRINT(stderr, "Link %s was found in static list\n", 
+				MULTI_DEBUG_PRINT(stderr, "Link %s assigned static IP\n", 
                         devname);
 				li_static = li_static_tmp->data;
 				li->state = GOT_IP_STATIC;
@@ -164,7 +179,6 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
             //The order in which links are stored in this list is not important
             multi_link_links = g_slist_prepend(multi_link_links, (gpointer) li); 
-
         }
     }
 
@@ -282,6 +296,7 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
     struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct nlmsghdr *nlh_tmp;
+    char *iface_name = NULL;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
@@ -308,6 +323,8 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct nlmsghdr *nlh_tmp;
+    GSList *list_tmp = NULL;
+    int32_t ifiIdx = 0;
 
     //Ignore table 255 (local). It is updated automatically as IPs are
     //added/deleted. This was the cause of the PPP bug, the IP was removed from
@@ -320,6 +337,19 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     mnl_attr_parse(nlh, sizeof(*table_i), multi_link_fill_rtattr, tb);
 
     if(tb[RTA_OIF]){
+        //Check for ignore. I have already fetched the list of all interface, so
+        //any interface NOT on this list is either specified as ignore, or have
+        //come up after boot and will be ignored
+        ifiIdx = mnl_attr_get_u32(tb[RTA_OIF]);
+        list_tmp = g_slist_find_custom(multi_link_links, &ifiIdx, 
+                multi_link_cmp_ifidx_int);
+
+        if(list_tmp == NULL){
+            MULTI_DEBUG_PRINT(stderr, "Not deleting route for idx %d\n", 
+                    ifiIdx);
+            return MNL_CB_OK;
+        }
+
         //Clear out the whole routing table, multi will control everything!
         nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         memcpy(nlh_tmp, nlh, nlh->nlmsg_len);

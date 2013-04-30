@@ -133,6 +133,8 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
                     mlis->proto = PROTO_STATIC;
                 else if(!strcmp(value_data, "other"))
                     mlis->proto = PROTO_OTHER;
+                else if(!strcmp(value_data, "ignore"))
+                    mlis->proto = PROTO_IGNORE;
                 else{
                     MULTI_DEBUG_PRINT(stderr, "Unknown protocol\n");
                     error = 1;

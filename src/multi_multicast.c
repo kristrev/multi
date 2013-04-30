@@ -240,8 +240,15 @@ int main(int argc, char *argv[]){
     }
 
     if(daemon_mode){
-        daemon(0, 0);
-        freopen("/var/log/multi.log", "a", stderr);
+        if(daemon(0, 0) == -1){
+            perror("Could not daemonize MULTI: ");
+            exit(EXIT_FAILURE);
+        }
+
+        if(freopen("/var/log/multi.log", "a", stderr) == NULL){
+            perror("freopen failed: ");
+            exit(EXIT_FAILURE);
+        } 
     }
 
     multi_test_visible_loop(mc);
