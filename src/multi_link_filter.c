@@ -163,7 +163,16 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 				MULTI_DEBUG_PRINT(stderr, "Link %s assigned static IP\n", 
                         devname);
 				li_static = li_static_tmp->data;
-				li->state = GOT_IP_STATIC;
+
+                //I will only set IP, when interface is only up.
+                if(ifi->ifi_flags & IFF_RUNNING){
+                    MULTI_DEBUG_PRINT(stderr, "Link %s is RUNNING\n", devname);
+                    li->state = GOT_IP_STATIC;
+                } else if(ifi->ifi_flags & IFF_UP){
+                    MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", devname);
+				    li->state = GOT_IP_STATIC_UP;
+                }
+
 				li->cfg = li_static->cfg_static;
 			} else if(ifi->ifi_type == ARPHRD_PPP){
                 /* PPP will be dealt with separatley, since they get the IP
