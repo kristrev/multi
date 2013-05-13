@@ -2,7 +2,8 @@
 #Valid options are:
 #- (address, netmask, gateway): Only address and netmask is required
 #- metric: desired metric for interface (must be between 1 and 32)
-#- proto: either static or other. latter means that multi assumes how to get IP.
+#- proto: static, other or ignore. other means that multi assumes how to get IP,
+#ignore means that multi will ignore the interface.
 
 eth0:
     proto: 'other'
