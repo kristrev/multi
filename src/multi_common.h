@@ -34,6 +34,8 @@ typedef enum{
     WAITING_FOR_DHCP, 
     //DHCP has finished successfully, info store in cfg and the main thread will configure interface
     GOT_IP_DHCP, 
+    //Static IP, interface is up, but not running (so no cable attached)
+    GOT_IP_STATIC_UP,
 	//Has a static IP address
     GOT_IP_STATIC, 
     //This is a PPP interface, which will be given an IP automaticually
@@ -48,6 +50,8 @@ typedef enum{
     //DHCP lease has expired and a new IP has not been received. This does not 
     //mean that the interface is down, but it cant be used!
     DHCP_IP_INVALID, 
+    //Interface is up, but not active (i.e., no cable)
+    LINK_UP_STATIC_IFF,
 	//Link is up and with a static IP (used to avoid seg fault when link goes 
     //down!)
     LINK_UP_STATIC, 

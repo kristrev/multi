@@ -35,6 +35,7 @@
 typedef enum{
     PROTO_STATIC,
     PROTO_OTHER,
+    PROTO_IGNORE,
 } multi_proto;
 
 /* This struct will be filled with info and passed to MULTI */

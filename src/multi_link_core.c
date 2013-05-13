@@ -183,8 +183,9 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
     int32_t probe_pipe = mc->socket_pipe[1];
 
     g_static_rw_lock_reader_lock(&(li->state_lock));
-    if(li->state == GOT_IP_DHCP || li->state == GOT_IP_STATIC || 
-            li->state == GOT_IP_PPP || li->state == GOT_IP_AP){
+    if(li->state == GOT_IP_DHCP || li->state == GOT_IP_STATIC_UP || 
+            li->state == GOT_IP_STATIC || li->state == GOT_IP_PPP || 
+            li->state == GOT_IP_AP){
         
         /* Add routes */
         //Check for uniqueness if needed
@@ -201,11 +202,21 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
 
         //TODO: Add error checks!
         multi_link_configure_link(li);
-        MULTI_DEBUG_PRINT(stderr, "IP address, routes and rules set for "
-                "device %s (iface idx %u)\n", li->dev_name, li->ifi_idx);
+        if(li->state == GOT_IP_STATIC_UP){
+            MULTI_DEBUG_PRINT(stderr, "IP address set for %s (iface idx %u)\n",
+                    li->dev_name, li->ifi_idx);
+            //Do not advertise interfaces that are only UP, they can't be used
+            //yet
+            li->state = LINK_UP_STATIC_IFF;
+            return;
+        } else
+            MULTI_DEBUG_PRINT(stderr, "IP address, routes and rules set for "
+                    "device %s (iface idx %u)\n", li->dev_name, li->ifi_idx);
+
         MULTI_DEBUG_PRINT(stderr, "M U %s %u %u\n", li->dev_name, 
                 li->ifi_idx, li->metric); 
         multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_UP);
+
 		if(li->state == GOT_IP_STATIC)
 			li->state = LINK_UP_STATIC;
         else if(li->state == GOT_IP_PPP)
@@ -332,6 +343,34 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
     return li;
 }
 
+static void multi_link_delete_link(struct multi_link_info *li, 
+    uint32_t probe_pipe){
+    MULTI_DEBUG_PRINT(stderr, "M D %s %u %u\n", li->dev_name, 
+            li->ifi_idx, li->metric);
+
+    if(li->cfg.address.s_addr != 0)
+        multi_link_remove_link(li);
+    
+    pthread_cancel(li->dhcp_thread);
+    pthread_join(li->dhcp_thread, NULL);
+
+    multi_link_links = g_slist_remove(multi_link_links, li);
+
+    if(!li->keep_metric)
+        //Remember that metric is one higher than index
+        multi_shared_metrics_set ^= 1 << (li->metric-1);
+    
+    //Should maybe be done earlier
+    multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_DOWN); 
+
+    if(li->decline_pipe[0] > 0){
+        close(li->decline_pipe[0]);
+        close(li->decline_pipe[1]);
+    }
+
+    free(li);
+}
+
 static void multi_link_modify_link(const struct nlmsghdr *nlh, 
         uint32_t probe_pipe, uint8_t unique){
     uint8_t if_name[IFNAMSIZ];
@@ -340,7 +379,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     uint8_t iface_state = 0;
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
-    GSList *list_tmp = NULL;
+    GSList *list_tmp = NULL, *list_elem=NULL;
     pthread_attr_t detach_attr;
     uint8_t wireless_mode = 0;
 
@@ -356,7 +395,6 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     }
 
     if_indextoname(ifi->ifi_index, (char*) if_name);
-  
 
     if(if_name[0] > 0 && strstr((char*) if_name, "ifb")){
 		MULTI_DEBUG_PRINT(stderr, "Interface %s is incoming, ignoring\n", 
@@ -371,11 +409,10 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
         /* Check linux/Documentation/networking/operstates.txt. IFF_RUNNING 
          * wraps both UP and UNKNOWN*/
-        if (ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
-                        (list_tmp = g_slist_find_custom(
-                            multi_shared_static_links, if_name, 
-                            multi_link_cmp_devname)))){
-            MULTI_DEBUG_PRINT(stderr, "Interface %s (%u) is up and running, "
+        if (ifi->ifi_flags & IFF_RUNNING){
+        //IF_OPER_UP == 6, defined in linux/if.h, chaos with includes
+        //if(iface_state == 6){
+            MULTI_DEBUG_PRINT(stderr, "Interface %s (%u) is RUNNING, "
                     "length %u\n", if_name, ifi->ifi_index, 
                     g_slist_length(multi_link_links));
  
@@ -386,19 +423,32 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     return;
                 }
   
-            if(g_slist_find_custom(multi_link_links, &(ifi->ifi_index), 
-                        multi_link_match_idx)){
-                MULTI_DEBUG_PRINT(stderr,"Interface %s (idx %u) has already "
-                        "been seen. Ignoring event\n", if_name, ifi->ifi_index);
+            if((list_tmp = g_slist_find_custom(multi_link_links, 
+                &(ifi->ifi_index), multi_link_match_idx)) != NULL){
+                li = (struct multi_link_info*) list_tmp->data;
+                if(li->state == LINK_UP_STATIC_IFF){
+                    MULTI_DEBUG_PRINT(stderr, "Interface %s (idx %u) has "
+                        "gone from UP to RUNNING\n", if_name, ifi->ifi_index);
+                    li->state = GOT_IP_STATIC;
+                } else
+                    MULTI_DEBUG_PRINT(stderr,"Interface %s (idx %u) has "
+                        "already been seen. Ignoring event\n", if_name, 
+                        ifi->ifi_index);
                 return;
             }
 
             if(g_slist_length(multi_link_links) < MAX_NUM_LINKS){
-                if(list_tmp != NULL || (list_tmp = g_slist_find_custom(
-                                multi_shared_static_links, 
-                                if_name, multi_link_cmp_devname))){
+                list_tmp = g_slist_find_custom(multi_shared_static_links, 
+                                if_name, multi_link_cmp_devname);
+
+                if(list_tmp != NULL){
                     li_static = list_tmp->data;
-                    li = multi_link_create_new_link(if_name, li_static->metric);
+                    if(li_static->proto == PROTO_IGNORE){
+                        MULTI_DEBUG_PRINT(stderr, "Ignoring %s\n", if_name);
+                        return;
+                    } else
+                        li = multi_link_create_new_link(if_name, 
+                                li_static->metric);
                 } else 
                     /* Allocate a new link, add to list and start DHCP */
                     li = multi_link_create_new_link(if_name, 0);
@@ -412,7 +462,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                 if(li_static != NULL && li_static->proto == PROTO_STATIC){
 					MULTI_DEBUG_PRINT(stderr, "Link %s found in static list\n", 
                             if_name);
-					li->state = GOT_IP_STATIC;
+                    li->state = GOT_IP_STATIC;
 					li->cfg = li_static->cfg_static;
 				} else if (ifi->ifi_type == ARPHRD_PPP){
                     /* PPP will be dealt with separatley, since they get the IP
@@ -451,46 +501,57 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 				}
             } else
                 MULTI_DEBUG_PRINT(stderr, "Limit reached, cannot add more links\n");
+        } else if(ifi->ifi_flags & IFF_UP){ //Might replace with IF_OPER_DOWN
+            //Check if interface has already been seen
+            list_tmp = g_slist_find_custom(multi_link_links, &(ifi->ifi_index), 
+                multi_link_match_idx);
 
+            //Interface is already seen as UP, so clean up, no matter if static
+            //or not. Static is a special case: remove routes, li from list
+            //and free li
+            if(list_tmp != NULL){
+                //Need a generic cleanup, move the next "else" into a separate
+                //function
+                li = (struct multi_link_info*) list_tmp->data;
+                MULTI_DEBUG_PRINT(stderr,"Interface %s (idx %u) has already "
+                    "been seen as UP, will clean\n", if_name, ifi->ifi_index);
+                multi_link_delete_link(li, probe_pipe);
+                return;
+            }
+
+            //Check if interface is in static list
+            list_tmp = g_slist_find_custom(multi_shared_static_links, if_name, 
+                            multi_link_cmp_devname);
+
+            if(list_tmp != NULL){
+                li_static = (struct multi_link_info_static*) list_tmp->data;
+
+                if(li_static->proto == PROTO_STATIC){
+                    //Allocate a new link
+                    MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", if_name);
+                    li = multi_link_create_new_link(if_name, li_static->metric);
+                    li->state = GOT_IP_STATIC_UP;
+                    li->cfg = li_static->cfg_static;
+                    multi_link_links = g_slist_prepend(multi_link_links, 
+                        (gpointer) li); 
+                }
+            }
         } else {
             uint32_t dev_idx = ifi->ifi_index;
             list_tmp = g_slist_find_custom(multi_link_links, &dev_idx, 
-                    multi_link_match_idx);
+                multi_link_match_idx);
 
             MULTI_DEBUG_PRINT(stderr, "Interface %s (index %u) is down, "
-                    "length %u\n", if_name, ifi->ifi_index, 
-                    g_slist_length(multi_link_links));
+                "length %u\n", if_name, ifi->ifi_index, 
+                g_slist_length(multi_link_links));
 
             if(list_tmp == NULL){
                 MULTI_DEBUG_PRINT(stderr, "Could not find %s (index %u), "
-                        "length %u\n", if_name, ifi->ifi_index, 
-                        g_slist_length(multi_link_links));
+                    "length %u\n", if_name, ifi->ifi_index, 
+                    g_slist_length(multi_link_links));
             } else{
-                li = (struct multi_link_info *) list_tmp->data;
-                MULTI_DEBUG_PRINT(stderr, "M D %s %u %u\n", li->dev_name, 
-                        li->ifi_idx, li->metric);
-
-                if(li->cfg.address.s_addr != 0)
-                    multi_link_remove_link(li);
-              	
-				pthread_cancel(li->dhcp_thread);
-                pthread_join(li->dhcp_thread, NULL);
-
-                multi_link_links = g_slist_remove(multi_link_links, li);
-    
-                if(!li->keep_metric)
-                    //Remember that metric is one higher than index
-                    multi_shared_metrics_set ^= 1 << (li->metric-1);
-                
-                //Should maybe be done earlier
-                multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_DOWN); 
-
-                if(li->decline_pipe[0] > 0){
-                    close(li->decline_pipe[0]);
-                    close(li->decline_pipe[1]);
-                }
-
-                free(li);
+                li = (struct multi_link_info*) list_tmp->data;
+                multi_link_delete_link(li, probe_pipe);
             }
         }
     }
