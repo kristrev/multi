@@ -245,6 +245,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
     if(ioctl(sockfd, SIOCGIFHWADDR, &ifq) == -1){
         //perror("Could not get info on interface");
         MULTI_DEBUG_PRINT(stderr,"Could not get info on interface\n");
+        close(sockfd);
         return -1;
     }
 
@@ -281,6 +282,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
                 sizeof(only_dhcp_prog)) == -1){
         MULTI_DEBUG_PRINT(stderr, "Could not attach netlink filter\n");
         perror("Msg: ");
+        close(sockfd);
         return -1;
     }
 
@@ -295,7 +297,6 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
     sll.sll_ifindex = li->ifi_idx;
 
     if(bind(sockfd, (struct sockaddr *) &sll, sizeof(sll)) == -1){
-        //perror("Could not bind socket");
         close(sockfd);
         MULTI_DEBUG_PRINT(stderr,"Could not bind socket\n");
         return -1;
