@@ -154,7 +154,7 @@ static int32_t multi_link_modify_route(uint32_t msg_type, uint32_t flags,
     mnl_attr_put_u32(nlh, RTA_DST, nw_ip);
     mnl_attr_put_u32(nlh, RTA_PREFSRC, li->cfg.address.s_addr);
     mnl_attr_put_u32(nlh, RTA_OIF, li->ifi_idx);
-   
+
     if(metric)
         mnl_attr_put_u32(nlh, RTA_PRIORITY, metric);
 

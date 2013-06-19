@@ -59,12 +59,15 @@ int32_t multi_link_fill_rtattr(const struct nlattr *attr, void *data){
 uint8_t multi_link_check_wlan_mode(uint8_t *dev_name){
     int32_t wlan_sock = 0; //Socket for communicating with iwlib
     struct wireless_config wcfg; //Malloc this one?
+    int32_t retval = 0;
 
     if((wlan_sock = iw_sockets_open()) > 0)
         //This can be optimised, MODE is just a normal ioctl
-        if(!iw_get_basic_config(wlan_sock, (char*) dev_name, &wcfg))
+        if(!iw_get_basic_config(wlan_sock, (char*) dev_name, &wcfg)){
             if(wcfg.mode == 3 || wcfg.mode == 6)
                 return wcfg.mode;
+        } else
+            close(wlan_sock);
 
     return 0;
 }
