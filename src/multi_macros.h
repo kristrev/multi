@@ -11,8 +11,8 @@
 //value and var. Returns 0 if equal, 1 if not
 #define TAILQ_FIND_CUSTOM(var, head, field, value, func) do{   \
     TAILQ_FOREACH(var, head, field){                            \
-        if(!func(var, value)){printf("Found match\n");                                   \
-            break;}                                              \
+        if(!func(var, value))                                   \
+            break;                                              \
     };                                                           \
 } while(0)
 

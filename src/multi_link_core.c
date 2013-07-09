@@ -50,10 +50,14 @@
 #include "multi_link_netlink.h"
 #include "multi_link_filter.h"
 #include "multi_common.h"
+#include "multi_macros.h"
 
 /* See coments for where variable/function is defined */
 //multi_link_shared
 extern GSList *multi_link_static_links; 
+
+//multi_shared
+extern struct multi_static_links_list multi_shared_static_links_new;
 
 //multi_link_core
 extern GSList *multi_link_links;
@@ -438,11 +442,10 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
 
             if(g_slist_length(multi_link_links) < MAX_NUM_LINKS){
-                list_tmp = g_slist_find_custom(multi_shared_static_links, 
-                                if_name, multi_link_cmp_devname);
+                TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links_new,
+                        list_ptr, if_name, multi_link_cmp_devname);
 
-                if(list_tmp != NULL){
-                    li_static = list_tmp->data;
+                if(li_static != NULL){
                     if(li_static->proto == PROTO_IGNORE){
                         MULTI_DEBUG_PRINT(stderr, "Ignoring %s\n", if_name);
                         return;
@@ -520,21 +523,17 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
 
             //Check if interface is in static list
-            list_tmp = g_slist_find_custom(multi_shared_static_links, if_name, 
-                            multi_link_cmp_devname);
+            TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links_new,
+                list_ptr, if_name, multi_link_cmp_devname);
 
-            if(list_tmp != NULL){
-                li_static = (struct multi_link_info_static*) list_tmp->data;
-
-                if(li_static->proto == PROTO_STATIC){
-                    //Allocate a new link
-                    MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", if_name);
-                    li = multi_link_create_new_link(if_name, li_static->metric);
-                    li->state = GOT_IP_STATIC_UP;
-                    li->cfg = li_static->cfg_static;
-                    multi_link_links = g_slist_prepend(multi_link_links, 
-                        (gpointer) li); 
-                }
+            if(li_static != NULL && li_static->proto == PROTO_STATIC){
+                //Allocate a new link
+                MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", if_name);
+                li = multi_link_create_new_link(if_name, li_static->metric);
+                li->state = GOT_IP_STATIC_UP;
+                li->cfg = li_static->cfg_static;
+                multi_link_links = g_slist_prepend(multi_link_links, 
+                    (gpointer) li); 
             }
         } else {
             uint32_t dev_idx = ifi->ifi_index;

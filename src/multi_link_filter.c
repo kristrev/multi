@@ -151,8 +151,6 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                     li_static)){
             
             //TODO: Assumes that there is initially always room for every link
-            //TODO: Check that code works with interfaces that are up, but has
-            //static IP (second case in master)
             if(li_static != NULL){
                 if(li_static->proto == PROTO_IGNORE){
                     MULTI_DEBUG_PRINT(stderr, "Ignoring %s (idx %d) \n", 

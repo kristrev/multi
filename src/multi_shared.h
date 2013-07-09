@@ -56,6 +56,7 @@ struct multi_link_info_static{
     TAILQ_ENTRY(multi_link_info_static) list_ptr;
 };
 
+//TODO: Naming convention
 TAILQ_HEAD(multi_static_links_list, multi_link_info_static) 
     multi_shared_static_links_new;
 
