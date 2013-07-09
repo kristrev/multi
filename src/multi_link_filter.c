@@ -34,7 +34,6 @@
 
 #include "multi_macros.h"
 
-extern GSList *multi_link_static_links;
 extern GSList *multi_link_links;
 extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
         uint32_t metric);
@@ -144,7 +143,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         //Interface is up, do normal operation
         //Last one is for interfaces that are UP, but not running (for example
         //no LAN cable)
-        TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links_new,
+        TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
             list_ptr, devname, multi_link_cmp_devname);
 
         if(ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 

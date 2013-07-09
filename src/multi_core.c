@@ -161,7 +161,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
     struct multi_link_info_static *mlis;
       
     //Only in use when a configuration file is present
-    TAILQ_INIT(&multi_shared_static_links_new);
+    TAILQ_INIT(&multi_shared_static_links);
 
     if((cfgfile = fopen(cfg_filename, "rb")) == NULL){
         MULTI_DEBUG_PRINT(stderr, "Could not open configuration file\n");
@@ -219,7 +219,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
                 error = 1;
                 break;
             } else {
-                TAILQ_INSERT_TAIL(&multi_shared_static_links_new, mlis, 
+                TAILQ_INSERT_TAIL(&multi_shared_static_links, mlis, 
                         list_ptr);
                 MULTI_DEBUG_PRINT(stderr, "Interface %s added to static list\n", 
                         mlis->dev_name);

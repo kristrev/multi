@@ -57,7 +57,7 @@
 extern GSList *multi_link_static_links; 
 
 //multi_shared
-extern struct multi_static_links_list multi_shared_static_links_new;
+extern struct multi_shared_static_links_list multi_shared_static_links_new;
 
 //multi_link_core
 extern GSList *multi_link_links;
@@ -442,7 +442,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
 
             if(g_slist_length(multi_link_links) < MAX_NUM_LINKS){
-                TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links_new,
+                TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
                         list_ptr, if_name, multi_link_cmp_devname);
 
                 if(li_static != NULL){
@@ -523,8 +523,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
 
             //Check if interface is in static list
-            TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links_new,
-                list_ptr, if_name, multi_link_cmp_devname);
+            TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links, list_ptr, 
+                    if_name, multi_link_cmp_devname);
 
             if(li_static != NULL && li_static->proto == PROTO_STATIC){
                 //Allocate a new link

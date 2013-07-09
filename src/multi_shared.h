@@ -57,11 +57,9 @@ struct multi_link_info_static{
 };
 
 //TODO: Naming convention
-TAILQ_HEAD(multi_static_links_list, multi_link_info_static) 
-    multi_shared_static_links_new;
-
 //List of static interfaces
-GSList* multi_shared_static_links; 
+TAILQ_HEAD(multi_shared_static_links_list, multi_link_info_static) 
+    multi_shared_static_links;
 
 //Bitset for keeping track of metrics. Must be larger if MAX_NUM_LINKS is 
 //increased
