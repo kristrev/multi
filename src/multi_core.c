@@ -196,6 +196,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
             //names
             mlis = (struct multi_link_info_static *) 
                 malloc(sizeof(struct multi_link_info_static));
+            memset(mlis, 0, sizeof(*mlis));
             mlis->metric = 0;
             memcpy(mlis->dev_name, event.data.scalar.value, 
                     strlen(event.data.scalar.value) + 1);
