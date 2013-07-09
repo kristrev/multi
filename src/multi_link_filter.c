@@ -198,7 +198,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 }
 
 int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
-    struct ip_info_new *ip_info = (struct ip_info_new *) data;
+    struct ip_info *ip_info = (struct ip_info *) data;
     struct ifaddrmsg *ifa = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct filter_msg *msg;
@@ -295,7 +295,7 @@ int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data){
 
 /* Get the ip rules that belong to the current interfaces */
 int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
-    struct ip_info_new *ip_info = (struct ip_info_new *) data;
+    struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     char *iface_name = NULL;
@@ -323,7 +323,7 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 }
 
 int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
-    struct ip_info_new *ip_info = (struct ip_info_new *) data;
+    struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     GSList *list_tmp = NULL;
@@ -364,27 +364,19 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     return MNL_CB_OK;
 }
 
-static void multi_link_free_ip_info_list(GSList *list){
-    GSList *list_itr = list;
-    GSList *list_old = NULL;
-
-    while(list_itr){
-        list_old = list_itr;
-        list_itr = g_slist_next(list_itr);
-        free(list_old->data);
+static void multi_link_free_ip_info_list(struct filter_list *list){
+    struct filter_msg *msg;
+    while(list->tqh_first != NULL){
+        msg = (struct filter_msg*) list->tqh_first;
+        TAILQ_REMOVE(list, list->tqh_first, list_ptr);
+        free(msg);
     }
 }
 
 /* Free the memory used by the ip_info struct */
 void multi_link_free_ip_info(struct ip_info *ip_info){
-    multi_link_free_ip_info_list(ip_info->ip_addr_n);
-    multi_link_free_ip_info_list(ip_info->ip_rules_n);
-    multi_link_free_ip_info_list(ip_info->ip_routes_n);
-
-    /* Free lists */
-    g_slist_free(ip_info->ip_addr_n);
-    g_slist_free(ip_info->ip_rules_n);
-    g_slist_free(ip_info->ip_routes_n);
-
+    multi_link_free_ip_info_list(&(ip_info->ip_addr_n));
+    multi_link_free_ip_info_list(&(ip_info->ip_rules_n));
+    multi_link_free_ip_info_list(&(ip_info->ip_routes_n));
 }
 
