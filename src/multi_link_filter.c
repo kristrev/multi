@@ -209,15 +209,6 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
                 sizeof(TAILQ_ENTRY(filter_msg)));
         memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
         TAILQ_INSERT_TAIL(&(ip_info->ip_addr_n), msg, list_ptr);
-
-        mnl_attr_parse(nlh, sizeof(*ifa), multi_link_fill_rtattr, tb);
-
-        if(tb[IFA_LOCAL]){
-            msg = (struct filter_msg*) malloc(sizeof(uint32_t) + 
-                    sizeof(TAILQ_ENTRY(filter_msg)));
-            msg->ipaddr = mnl_attr_get_u32(tb[IFA_LOCAL]);
-            TAILQ_INSERT_TAIL(&(ip_info->ip_addr), msg, list_ptr);
-        }
     }
 
     return MNL_CB_OK;
@@ -391,7 +382,6 @@ void multi_link_free_ip_info(struct ip_info *ip_info){
     multi_link_free_ip_info_list(ip_info->ip_routes_n);
 
     /* Free lists */
-    g_slist_free(ip_info->ip_addr);
     g_slist_free(ip_info->ip_addr_n);
     g_slist_free(ip_info->ip_rules_n);
     g_slist_free(ip_info->ip_routes_n);

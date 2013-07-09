@@ -26,7 +26,6 @@
 /* Helper struct to keep the different lists of information needed to 
  * configure a system where interfaces are already up  */
 struct ip_info{
-    GSList *ip_addr; //The actual ip-addresses, convenience when requesting rules
     GSList *ip_addr_n; //The nlmsgs, will be used to delete ip addresses
     GSList *ip_rules_n; //The netlink messages containing the rules
     GSList *ip_routes_n; //The table ID
@@ -34,11 +33,8 @@ struct ip_info{
 
 struct filter_msg{
     //TODO: Union with nlh and uint32 for the address
-    union{
-        struct nlmsghdr nlh;
-        uint32_t ipaddr;
-    };
     TAILQ_ENTRY(filter_msg) list_ptr;
+    struct nlmsghdr nlh;
 };
 
 TAILQ_HEAD(filter_list, filter_msg);

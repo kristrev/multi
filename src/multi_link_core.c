@@ -593,19 +593,20 @@ static void multi_link_populate_links_list(){
     multi_link_filter(seq, multi_link_filter_links, NULL);
 }
 
-static void multi_link_del_info(GSList *nlmsg_list, uint16_t nlmsg_type){
-    GSList *list_itr = nlmsg_list;
+static void multi_link_del_info(struct filter_list nlmsg_list, uint16_t nlmsg_type){
+    struct filter_msg *msg;
     struct nlmsghdr *nlh;
-    uint32_t seq = 0;
+    uint32_t seq;
 
-    while(list_itr){
-        nlh = (struct nlmsghdr *) list_itr->data;
+    for(msg = nlmsg_list.tqh_first; msg != NULL; msg = msg->list_ptr.tqe_next){
+        nlh = (struct nlmsghdr*) &(msg->nlh);
         nlh->nlmsg_type = nlmsg_type;
         nlh->nlmsg_flags = NLM_F_REQUEST;
-        nlh->nlmsg_seq = seq = time(NULL); //Needs seq
+        nlh->nlmsg_seq = seq = time(NULL);
+
+        printf("Deleting info\n");
 
         mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len);
-        list_itr = g_slist_next(list_itr);
     }
 }
 
@@ -660,12 +661,10 @@ static int32_t multi_link_flush_links(){
     multi_link_filter(seq, multi_link_filter_iproutes, &ip_info);
  
     /* Remove existing information and free memory */
-#if 0
     multi_link_del_info(ip_info.ip_routes_n, RTM_DELROUTE);
     multi_link_del_info(ip_info.ip_rules_n, RTM_DELRULE);
     multi_link_del_info(ip_info.ip_addr_n, RTM_DELADDR);
-    multi_link_free_ip_info(&ip_info);
-#endif
+    //multi_link_free_ip_info(&ip_info);
     return EXIT_SUCCESS;
 }
 
