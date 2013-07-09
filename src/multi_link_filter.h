@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <asm/types.h>
 #include <sys/socket.h>
+#include <sys/queue.h>
 
 /* Helper struct to keep the different lists of information needed to 
  * configure a system where interfaces are already up  */
@@ -29,6 +30,25 @@ struct ip_info{
     GSList *ip_addr_n; //The nlmsgs, will be used to delete ip addresses
     GSList *ip_rules_n; //The netlink messages containing the rules
     GSList *ip_routes_n; //The table ID
+};
+
+struct filter_msg{
+    //TODO: Union with nlh and uint32 for the address
+    union{
+        struct nlmsghdr nlh;
+        uint32_t ipaddr;
+    };
+    TAILQ_ENTRY(filter_msg) list_ptr;
+};
+
+TAILQ_HEAD(filter_list, filter_msg);
+
+//TODO: Use pointers instead?
+struct ip_info_new{
+    struct filter_list ip_addr;
+    struct filter_list ip_addr_n;
+    struct filter_list ip_rules_n;
+    struct filter_list ip_routes_n;
 };
 
 //Helper function for filling in rtattr

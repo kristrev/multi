@@ -610,7 +610,7 @@ static void multi_link_del_info(GSList *nlmsg_list, uint16_t nlmsg_type){
 }
 
 static int32_t multi_link_flush_links(){
-    struct ip_info ip_info;
+    struct ip_info_new ip_info;
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     struct nlmsghdr *nlh;
     struct rtgenmsg *rt;
@@ -618,6 +618,12 @@ static int32_t multi_link_flush_links(){
 
     memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
     memset(&ip_info, 0, sizeof(ip_info));
+
+    //Initialize list
+    TAILQ_INIT(&(ip_info.ip_addr));
+    TAILQ_INIT(&(ip_info.ip_addr_n));
+    TAILQ_INIT(&(ip_info.ip_rules_n));
+    TAILQ_INIT(&(ip_info.ip_routes_n));
 
     //Sets room for one nlmsghdr in buffer buf
     nlh = mnl_nlmsg_put_header(buf);
@@ -654,11 +660,12 @@ static int32_t multi_link_flush_links(){
     multi_link_filter(seq, multi_link_filter_iproutes, &ip_info);
  
     /* Remove existing information and free memory */
+#if 0
     multi_link_del_info(ip_info.ip_routes_n, RTM_DELROUTE);
     multi_link_del_info(ip_info.ip_rules_n, RTM_DELRULE);
     multi_link_del_info(ip_info.ip_addr_n, RTM_DELADDR);
     multi_link_free_ip_info(&ip_info);
-
+#endif
     return EXIT_SUCCESS;
 }
 
