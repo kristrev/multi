@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <glib.h>
 #include <net/if.h>
+#include <sys/queue.h>
 #include "multi_dhcp_common.h"
 
 #define MAX_CFG_LEN 256
@@ -51,7 +52,12 @@ struct multi_link_info_static{
 	struct multi_dhcp_config cfg_static;
     uint32_t metric;
     multi_proto proto;
+
+    TAILQ_ENTRY(multi_link_info_static) list_ptr;
 };
+
+TAILQ_HEAD(multi_static_links_list, multi_link_info_static) 
+    multi_shared_static_links_new;
 
 //List of static interfaces
 GSList* multi_shared_static_links; 
