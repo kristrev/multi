@@ -203,7 +203,6 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct filter_msg *msg;
 
-
     if(g_slist_find_custom(multi_link_links, ifa, multi_link_cmp_ifidx)){
         //Copy the nlmsg, as I will recycle it later when I delete everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
@@ -305,11 +304,11 @@ int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data){
 
 /* Get the ip rules that belong to the current interfaces */
 int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
-    struct ip_info *ip_info = (struct ip_info *) data;
+    struct ip_info_new *ip_info = (struct ip_info_new *) data;
     struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
-    struct nlmsghdr *nlh_tmp;
     char *iface_name = NULL;
+    struct filter_msg *msg;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
@@ -322,22 +321,23 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
                 mnl_attr_get_u32(tb[FRA_PRIORITY]));
 
         /* Add the rule nlmsg to list */
-        nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
-        memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
-        ip_info->ip_rules_n = g_slist_append(ip_info->ip_rules_n, 
-                (gpointer) nlh_tmp);
+        //nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
+        msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
+                sizeof(TAILQ_ENTRY(filter_msg)));
+        memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
+        TAILQ_INSERT_TAIL(&(ip_info->ip_rules_n), msg, list_ptr);
     }
 
     return MNL_CB_OK;
 }
 
 int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
-    struct ip_info *ip_info = (struct ip_info *) data;
+    struct ip_info_new *ip_info = (struct ip_info_new *) data;
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
-    struct nlmsghdr *nlh_tmp;
     GSList *list_tmp = NULL;
     int32_t ifiIdx = 0;
+    struct filter_msg *msg;
 
     //Ignore table 255 (local). It is updated automatically as IPs are
     //added/deleted. This was the cause of the PPP bug, the IP was removed from
@@ -364,10 +364,10 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
         }
 
         //Clear out the whole routing table, multi will control everything!
-        nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
-        memcpy(nlh_tmp, nlh, nlh->nlmsg_len);
-        ip_info->ip_routes_n = g_slist_append(ip_info->ip_routes_n, 
-                (gpointer) nlh_tmp);
+        msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
+                sizeof(TAILQ_ENTRY(filter_msg)));
+        memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
+        TAILQ_INSERT_TAIL(&(ip_info->ip_routes_n), msg, list_ptr);
     }
 
     return MNL_CB_OK;
