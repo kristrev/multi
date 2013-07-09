@@ -600,8 +600,6 @@ static void multi_link_del_info(struct filter_list nlmsg_list, uint16_t nlmsg_ty
         nlh->nlmsg_flags = NLM_F_REQUEST;
         nlh->nlmsg_seq = seq = time(NULL);
 
-        printf("Deleting info\n");
-
         mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len);
     }
 }
