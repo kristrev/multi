@@ -53,11 +53,8 @@
 #include "multi_macros.h"
 
 /* See coments for where variable/function is defined */
-//multi_link_shared
-extern GSList *multi_link_static_links; 
-
 //multi_shared
-extern struct multi_shared_static_links_list multi_shared_static_links_new;
+extern struct multi_shared_static_links_list multi_shared_static_links;
 
 //multi_link_core
 extern GSList *multi_link_links;
