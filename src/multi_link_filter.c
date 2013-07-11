@@ -33,6 +33,7 @@
 #include "multi_link_shared.h"
 
 #include "multi_macros.h"
+#include "multi_cmp.h"
 
 extern GSList *multi_link_links;
 extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
@@ -73,40 +74,6 @@ uint8_t multi_link_check_wlan_mode(uint8_t *dev_name){
     return 0;
 }
 
-/* The compare functions used by the different filters */
-static gint multi_link_cmp_ifidx(gconstpointer a, gconstpointer b){
-    struct multi_link_info *li = (struct multi_link_info *) a;
-    struct ifaddrmsg *ifa = (struct ifaddrmsg *) b;
-
-    //Ignore PPP interfaces, as they will not be flushed!
-    if((li->state != GOT_IP_PPP && li->state != GOT_IP_AP) && li->ifi_idx == 
-            ifa->ifa_index)
-        return 0;
-    else
-        return 1;
-}
-
-static gint multi_link_cmp_ifidx_int(gconstpointer a, gconstpointer b){
-    struct multi_link_info *li = (struct multi_link_info *) a;
-    uint32_t *ifiIdx = (uint32_t*) b;
-
-    if(li->ifi_idx == *ifiIdx)
-        return 0;
-    else
-        return 1;
-}
-
-//TODO: Remove duplicate comparison functions!
-static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
-	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
-	uint8_t *dev_name = (uint8_t *) b;
-
-	if(!g_strcmp0((char*) li->dev_name, (char*) dev_name))
-		return 0;
-	else
-		return 1;
-}
-
 int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     //nlattr is the generic form of rtattr
     struct nlattr *tb[IFLA_MAX + 1] = {};
@@ -144,7 +111,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         //Last one is for interfaces that are UP, but not running (for example
         //no LAN cable)
         TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
-            list_ptr, devname, multi_link_cmp_devname);
+            list_ptr, devname, multi_cmp_devname);
 
         if(ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
                     li_static)){
@@ -202,7 +169,7 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct filter_msg *msg;
 
-    if(g_slist_find_custom(multi_link_links, ifa, multi_link_cmp_ifidx)){
+    if(g_slist_find_custom(multi_link_links, ifa, multi_cmp_ifidx_flush)){
         //Copy the nlmsg, as I will recycle it later when I delete everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
                 sizeof(TAILQ_ENTRY(filter_msg)));
@@ -345,7 +312,7 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
         //come up after boot and will be ignored
         ifiIdx = mnl_attr_get_u32(tb[RTA_OIF]);
         list_tmp = g_slist_find_custom(multi_link_links, &ifiIdx, 
-                multi_link_cmp_ifidx_int);
+                multi_cmp_ifidx);
 
         if(list_tmp == NULL){
             MULTI_DEBUG_PRINT(stderr, "Not deleting route for idx %d\n", 

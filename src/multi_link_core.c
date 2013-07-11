@@ -51,6 +51,7 @@
 #include "multi_link_filter.h"
 #include "multi_common.h"
 #include "multi_macros.h"
+#include "multi_cmp.h"
 
 /* See coments for where variable/function is defined */
 //multi_shared
@@ -101,15 +102,6 @@ int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg){
     return 1;
 }
 
-static gint multi_link_cmp_devname(gconstpointer a, gconstpointer b){
-	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
-	uint8_t *dev_name = (uint8_t *) b;
-
-	if(!g_strcmp0((char*) li->dev_name, (char*) dev_name))
-		return 0;
-	else
-		return 1;
-}
 
 static void multi_link_notify_probing(int32_t probe_pipe, uint32_t ifi_idx, 
         link_state state){
@@ -301,16 +293,6 @@ static void multi_link_clean_links(){
     }
 }
 
-static gint multi_link_match_idx(gconstpointer a, gconstpointer b){
-    struct multi_link_info *li = (struct multi_link_info *) a;
-    uint32_t *dev_idx = (uint32_t *) b;
-
-    if(li->ifi_idx == *dev_idx)
-        return 0;
-    
-    return 1;
-}
-
 struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
         uint32_t metric){
     struct multi_link_info *li = (struct multi_link_info *) 
@@ -425,7 +407,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                 }
   
             if((list_tmp = g_slist_find_custom(multi_link_links, 
-                &(ifi->ifi_index), multi_link_match_idx)) != NULL){
+                &(ifi->ifi_index), multi_cmp_ifidx)) != NULL){
                 li = (struct multi_link_info*) list_tmp->data;
                 if(li->state == LINK_UP_STATIC_IFF){
                     MULTI_DEBUG_PRINT(stderr, "Interface %s (idx %u) has "
@@ -440,7 +422,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
             if(g_slist_length(multi_link_links) < MAX_NUM_LINKS){
                 TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
-                        list_ptr, if_name, multi_link_cmp_devname);
+                        list_ptr, if_name, multi_cmp_devname);
 
                 if(li_static != NULL){
                     if(li_static->proto == PROTO_IGNORE){
@@ -504,7 +486,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
         } else if(ifi->ifi_flags & IFF_UP){ //Might replace with IF_OPER_DOWN
             //Check if interface has already been seen
             list_tmp = g_slist_find_custom(multi_link_links, &(ifi->ifi_index), 
-                multi_link_match_idx);
+                multi_cmp_ifidx);
 
             //Interface is already seen as UP, so clean up, no matter if static
             //or not. Static is a special case: remove routes, li from list
@@ -521,7 +503,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
             //Check if interface is in static list
             TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links, list_ptr, 
-                    if_name, multi_link_cmp_devname);
+                    if_name, multi_cmp_devname);
 
             if(li_static != NULL && li_static->proto == PROTO_STATIC){
                 //Allocate a new link
@@ -535,7 +517,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
         } else {
             uint32_t dev_idx = ifi->ifi_index;
             list_tmp = g_slist_find_custom(multi_link_links, &dev_idx, 
-                multi_link_match_idx);
+                multi_cmp_ifidx);
 
             MULTI_DEBUG_PRINT(stderr, "Interface %s (index %u) is down, "
                 "length %u\n", if_name, ifi->ifi_index, 
