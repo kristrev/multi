@@ -296,22 +296,27 @@ int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data){
 int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
     struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
-    struct nlattr *tb[IFLA_MAX + 1] = {};
+    struct nlattr *tb[FRA_MAX + 1] = {};
     char *iface_name = NULL;
     struct filter_msg *msg;
+    uint32_t fra_priority = 0;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
-    if(!(tb[FRA_SRC]))
+    printf("Rule for table %u\n", rt->rtm_table);
+
+    if(!tb[FRA_SRC])
         return MNL_CB_OK;
 
     //Delete ANY rule which does not point to one of the default tables
     if(rt->rtm_table > 0 && rt->rtm_table < 253){
+        if(tb[FRA_PRIORITY])
+            fra_priority = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+
         MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
-                mnl_attr_get_u32(tb[FRA_PRIORITY]));
+                fra_priority);
 
         /* Add the rule nlmsg to list */
-        //nlh_tmp = (struct nlmsghdr *) malloc(nlh->nlmsg_len);
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
                 sizeof(TAILQ_ENTRY(filter_msg)));
         memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
