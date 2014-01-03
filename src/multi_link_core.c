@@ -354,7 +354,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     struct ifinfomsg *ifi = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     uint8_t iface_state = 0;
-    struct multi_link_info *li;
+    struct multi_link_info *li = NULL;
 	struct multi_link_info_static *li_static = NULL;
     GSList *list_tmp = NULL, *list_elem=NULL;
     pthread_attr_t detach_attr;
@@ -508,19 +508,18 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             }
         } else {
             uint32_t dev_idx = ifi->ifi_index;
-            list_tmp = g_slist_find_custom(multi_link_links, &dev_idx, 
-                multi_cmp_ifidx);
+            LIST_FIND_CUSTOM(li, &multi_link_links_2, next, &dev_idx,
+                    multi_cmp_ifidx);
 
             MULTI_DEBUG_PRINT(stderr, "Interface %s (index %u) is down, "
                 "length %u\n", if_name, ifi->ifi_index, 
                 g_slist_length(multi_link_links));
 
-            if(list_tmp == NULL){
+            if(li == NULL){
                 MULTI_DEBUG_PRINT(stderr, "Could not find %s (index %u), "
                     "length %u\n", if_name, ifi->ifi_index, 
                     g_slist_length(multi_link_links));
             } else{
-                li = (struct multi_link_info*) list_tmp->data;
                 multi_link_delete_link(li, probe_pipe);
             }
         }
