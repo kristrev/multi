@@ -18,7 +18,6 @@
 #define MULTI_SHARED_H
 
 #include <stdint.h>
-#include <glib.h>
 #include <net/if.h>
 #include <sys/queue.h>
 #include "multi_dhcp_common.h"

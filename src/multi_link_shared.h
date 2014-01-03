@@ -18,7 +18,6 @@
 #define MULTI_LINK_SHARED_H
 
 #include <stdint.h>
-#include <glib.h>
 #include <pthread.h>
 #include <net/if.h>
 #include <sys/queue.h>
@@ -52,7 +51,7 @@ struct multi_link_info{
     pthread_t dhcp_thread;
     //This might not have to be locked at all (can leave with some level of 
     //instability), but have rwlock for now
-    GStaticRWLock state_lock; 
+    pthread_mutex_t state_lock;
 
     LIST_ENTRY(multi_link_info) next;
 };

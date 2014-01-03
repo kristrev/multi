@@ -31,7 +31,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <glib.h>
 
 extern void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di);
 extern int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di, 
@@ -178,14 +177,14 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                         di->state = INIT;
 
                         /* Update link state and notify link module  */
-                        g_static_rw_lock_writer_lock(&(li->state_lock));
+                        pthread_mutex_lock(&(li->state_lock));
                         //Only send if seend once
                         if(li->state != DHCP_IP_INVALID && li->state 
                                 != LINK_INVALID){
                             li->state = DHCP_IP_INVALID;
                             multi_dhcp_notify_link_module(li->write_pipe);
                         }
-                        g_static_rw_lock_writer_unlock(&(li->state_lock));
+                        pthread_mutex_unlock(&(li->state_lock));
                     }
 
                     multi_dhcp_create_dhcp_msg(di);

@@ -17,7 +17,6 @@
 #ifndef MULTI_LINK_FILTER_H
 #define MULTI_LINK_FILTER_H
 
-#include <glib.h>
 #include <stdint.h>
 #include <asm/types.h>
 #include <sys/socket.h>

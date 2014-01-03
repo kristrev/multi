@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <glib.h>
 #include <libmnl/libmnl.h>
 #include <sys/queue.h>
 
@@ -42,7 +41,6 @@ struct mnl_socket *multi_link_nl_event;
 //limnl structure used only for setting parameters
 struct mnl_socket *multi_link_nl_set; 
 //The link module's list of all links
-GSList *multi_link_links;
 LIST_HEAD(multi_link_links_head, multi_link_info) multi_link_links_2;
 uint32_t multi_link_num_links;
 

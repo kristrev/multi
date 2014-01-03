@@ -14,7 +14,6 @@
  * Network Device Listener. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <glib.h>
 #include <stdint.h>
 #include <asm/types.h>
 #include <sys/socket.h>

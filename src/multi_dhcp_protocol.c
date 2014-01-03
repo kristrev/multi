@@ -32,7 +32,6 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <pthread.h>
-#include <glib.h>
 
 extern int32_t multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, 
         int from_if, struct multi_dhcp_message *msg, uint8_t broadcast);
@@ -436,9 +435,9 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
                 /* Set state as waiting. I can here if a) rebooting fails b)
                  * requesting fails c) renewing fails d) rebinding fails. In the
                  * last two, the link can be in UP state */
-                g_static_rw_lock_writer_lock(&(li->state_lock));
+                pthread_mutex_lock(&(li->state_lock));
                 li->state = WAITING_FOR_DHCP;
-                g_static_rw_lock_writer_unlock(&(li->state_lock));
+                pthread_mutex_unlock(&(li->state_lock));
 
                 multi_dhcp_create_dhcp_msg(di);
             } else if(cfg.dhcpmsgtype == DHCP_TYPE_ACK){
@@ -464,8 +463,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
 
 
                 //TODO: I need some variable or check to prevent adding the same IP twice. Compare cfg is maybe sufficient? Or at least address?
-                //pthread_mutex_lock(&(li->link_state_lock));
-                g_static_rw_lock_writer_lock(&(li->state_lock));
+                pthread_mutex_lock(&(li->state_lock));
 
                 /* This is needed if one interface switches network. Otherwise,
                  * the main thread will not know that it has to clean up (it
@@ -493,7 +491,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
                     }
                 }
 
-                g_static_rw_lock_writer_unlock(&(li->state_lock));
+                pthread_mutex_unlock(&(li->state_lock));
 
                 t_now = time(NULL);
                 t_diff = t_now - di->req_sent_time;
