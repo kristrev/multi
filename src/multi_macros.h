@@ -16,4 +16,11 @@
     };                                                           \
 } while(0)
 
+#define LIST_FIND_CUSTOM(var, head, field, value, func) do{   \
+    LIST_FOREACH(var, head, field){                            \
+        if(!func(var, value))                                   \
+            break;                                              \
+    };                                                           \
+} while(0)
+
 #endif

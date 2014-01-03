@@ -29,6 +29,8 @@
 #include "multi_common.h"
 #include "multi_core.h"
 #include "multi_shared.h"
+#include "multi_cmp.h"
+#include "multi_macros.h"
 
 extern char *optarg;
 extern int32_t opterr;
@@ -44,14 +46,16 @@ struct iface{
 
 static LIST_HEAD(iface_head, iface) iface_list;
 
-static gint test_match_idx(gconstpointer a, gconstpointer b){
-    struct iface *ni = (struct iface*) a;
-    int32_t *ifi_idx = (int32_t *) b;
+//Simple comparison function used to find out if an interface is already in the
+//list
+static uint8_t multi_mc_cmp_ifi(void *a, void *b){
+	struct iface *ifa = (struct iface*) a;
+	uint32_t *ifi_idx = (uint32_t *) b;
 
-    if(ni->ifi_idx == *ifi_idx)
-        return 0;
-    
-    return 1;
+	if(ifa->ifi_idx == *ifi_idx)
+		return 0;
+	else
+		return 1;
 }
 
 void multi_test_visible_loop(struct multi_config *mc){
@@ -59,7 +63,7 @@ void multi_test_visible_loop(struct multi_config *mc){
     int32_t retval;
     int32_t i;
     int32_t netlink_sock = 0;
-    int32_t ifi_idx = 0;
+    uint32_t ifi_idx = 0;
     struct iface *ni = NULL;
 
     /* Needed to create the netlink messages  */
@@ -134,19 +138,11 @@ void multi_test_visible_loop(struct multi_config *mc){
         if(retval == 0){
             for(ni = iface_list.lh_first; ni != NULL; ni = ni->next.le_next){
                 printf("Hei\n");
-            }
-#if 0
-            ifaces_tmp = ifaces;
-
-            while(ifaces_tmp){
-                ni = (struct iface*) ifaces_tmp->data;
                 iov.iov_base = (void *) ni->nlmsg;
                 iov.iov_len = ni->nlmsg->nlmsg_len;
                 sendmsg(netlink_sock, &msg, 0);
-
-                ifaces_tmp = g_slist_next(ifaces_tmp);
             }
-#endif
+
             tv.tv_sec = 30;
             tv.tv_usec = 0;
             continue;
@@ -160,13 +156,18 @@ void multi_test_visible_loop(struct multi_config *mc){
         if(retval == -1)
             perror("Failed to read from pipe");
         else {
-            //Need to use int for storing index. It can grow much larger than
-            //255 due to usb devices going up and down
-            memcpy(&ifi_idx, (buf+1), sizeof(int32_t));
+            memcpy(&ifi_idx, (buf+1), sizeof(uint32_t));
+           
+            //This check needs to be performed irrespective of if link goes up
+            //or down.
+            LIST_FIND_CUSTOM(ni, &iface_list, next, &ifi_idx,
+                        multi_mc_cmp_ifi);
 
             if(buf[0] == LINK_UP){
-                //if(g_slist_find_custom(ifaces, &ifi_idx, test_match_idx))
-                //    continue;
+                //Sanity check. If the interface is already found, ignore the
+                //announcement from MULTI.
+                if(ni)
+                    continue;
 
                 //Create a new iface, buffer the up message and add to list
                 ni = (struct iface*) malloc(sizeof(struct iface));
@@ -186,11 +187,8 @@ void multi_test_visible_loop(struct multi_config *mc){
                 MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about an UP "
                         "change in network state\n", retval);
             } else {
-#if 0
-                if(ifaces_tmp = g_slist_find_custom(ifaces, &ifi_idx, 
-                            test_match_idx)){
+                if(ni){
                     //Forward message from MULTI
-                    ni = (struct iface *) ifaces_tmp->data;
                     ni->nlmsg->nlmsg_len = NLMSG_SPACE(retval);
                     memcpy(NLMSG_DATA(ni->nlmsg), buf, retval);
                     iov.iov_base = (void *) ni->nlmsg;
@@ -199,13 +197,9 @@ void multi_test_visible_loop(struct multi_config *mc){
                     MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about a "
                             "DOWN change in network state\n", retval);
                     
-                    //Remove iface from list, only interested in interfaces that
-                    //are up
+                    LIST_REMOVE(ni, next);
                     free(ni);
-                    ifaces = g_slist_remove_link(ifaces, ifaces_tmp);
-                    g_slist_free_1(ifaces_tmp);
                 }
-#endif
             }
         }
 

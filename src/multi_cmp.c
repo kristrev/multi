@@ -4,6 +4,7 @@
 #include "multi_link_shared.h"
 #include "multi_shared.h"
 
+//TODO: Look into merging some of the cmp methods
 uint8_t multi_cmp_devname(void *a, void *b){
 	struct multi_link_info_static *li = (struct multi_link_info_static *) a;
 	char *dev_name = (char *) b;
