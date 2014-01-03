@@ -68,7 +68,8 @@ Future work
   RTNETLINK-messages generate replies, while others don't.
 * General code clean-up: The application has proven to be stable (used in a scientific
   test network for over a year now) and without memory leaks, but the overall
-  structure still bears the marks of mostly being written during a PhD.
+  structure still bears the marks of my (then) inexperience with netlink and more advanced
+  event loop designs.
 
 Motivation
 ----------
