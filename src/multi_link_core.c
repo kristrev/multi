@@ -170,7 +170,7 @@ static uint8_t multi_link_check_unique(struct multi_link_info *li,
     return unique;
 }
 
-static void multi_link_check_link(gpointer data, gpointer user_data){
+static void multi_link_check_link(void *data, void *user_data){
     struct multi_link_info *li = (struct multi_link_info *) data;
     struct multi_config *mc = (struct multi_config *) user_data;
     int32_t probe_pipe = mc->socket_pipe[1];
@@ -270,26 +270,20 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
 /* Remove all links that have been deleted. This is only used when 
  * DHCP fails! */
 static void multi_link_clean_links(){
-    GSList *links_cur, *links_old;
-    struct multi_link_info *li_tmp;
+    struct multi_link_info *li, *li_tmp;
 
-    links_cur = multi_link_links;
-
-    while(1){
-        li_tmp = (struct multi_link_info *) links_cur->data;
-        links_old = links_cur;       
-        links_cur = g_slist_next(links_cur); 
+    for(li = multi_link_links_2.lh_first; li != NULL; ){
+        //I update the list while iterating, so I need to forward iterator
+        li_tmp = li;
+        li = li->next.le_next;
 
         /* No need for lock here, the state DELETE_LINK is ONLY set by this 
          * thread and DHCP thread has been cancelled */
         if(li_tmp->state == DELETE_LINK){
             MULTI_DEBUG_PRINT(stderr, "Will delete %s\n", li_tmp->dev_name);
-            multi_link_links = g_slist_delete_link(multi_link_links, links_old);
+            LIST_REMOVE(li_tmp, next);
             free(li_tmp);
         }
-    
-        if(links_cur == NULL)
-            break;
     }
 }
 
@@ -337,7 +331,7 @@ static void multi_link_delete_link(struct multi_link_info *li,
     pthread_cancel(li->dhcp_thread);
     pthread_join(li->dhcp_thread, NULL);
 
-    multi_link_links = g_slist_remove(multi_link_links, li);
+    LIST_REMOVE(li, next);
 
     if(!li->keep_metric)
         //Remember that metric is one higher than index
@@ -435,10 +429,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     /* Allocate a new link, add to list and start DHCP */
                     li = multi_link_create_new_link(if_name, 0);
                 
-                //The order in which links are stored in this list is not 
-                //important
-                multi_link_links = g_slist_prepend(multi_link_links, 
-                        (gpointer) li); 
+                //Insert link into link list
+                LIST_INSERT_HEAD(&multi_link_links_2, li, next);
 
                 /* Add as a case here! The check for point to point  */
                 if(li_static != NULL && li_static->proto == PROTO_STATIC){
@@ -715,24 +707,20 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
     if(multi_link_flush_links() == EXIT_FAILURE)
         return EXIT_FAILURE;
 
-    if(g_slist_length(multi_link_links) > 0){
+    //Go through already seen interfaces and start DHCP as needed
+    if(multi_link_num_links > 0){
         pthread_attr_init(&detach_attr);
         pthread_attr_setdetachstate(&detach_attr, PTHREAD_CREATE_DETACHED);
-        multi_link_links_itr = multi_link_links;
 
-        while(multi_link_links_itr){
-            /* Start DHCP for each existing interface */
-            li = multi_link_links_itr->data;
-
-            /* Don't start DHCP for interfaces with static IP */
+        for(li = multi_link_links_2.lh_first; li != NULL;
+                li = li->next.le_next){
+            /* Start DHCP */
             if(li->state == WAITING_FOR_DHCP){
                 MULTI_DEBUG_PRINT(stderr, "Starting DHCP for existing "
                         "interface %s\n", li->dev_name);
                 pthread_create(&(li->dhcp_thread), &detach_attr, 
                         multi_dhcp_main, (void *) li);
             }
-
-            multi_link_links_itr = g_slist_next(multi_link_links_itr);
         }
     }
 
@@ -787,8 +775,8 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
                             mnl_buf, sizeof(mnl_buf));
                 } else if(i == multi_link_dhcp_pipes[0]){
                     numbytes = read(i, buf, MAX_PIPE_MSG_LEN);
-                    g_slist_foreach(multi_link_links, multi_link_check_link, 
-                            mc);
+                    LIST_FOREACH_CB(&multi_link_links_2, next,
+                            multi_link_check_link, li, mc);
                     multi_link_clean_links();
                 }
             } 
@@ -801,6 +789,7 @@ void* multi_link_module_init(void *arg){
     struct multi_core_sync *mcs = (struct multi_core_sync *) arg;
 
     LIST_INIT(&multi_link_links_2);
+    multi_link_num_links = 0;
 
     pthread_mutex_lock(&(mcs->sync_mutex));
     pthread_cond_signal(&(mcs->sync_cond));

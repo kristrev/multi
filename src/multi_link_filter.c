@@ -36,6 +36,7 @@
 #include "multi_cmp.h"
 
 extern struct multi_link_links_head multi_link_links_2;
+extern uint32_t multi_link_num_links; 
 extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
         uint32_t metric);
 
@@ -156,6 +157,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
             //The order in which links are stored in this list is not important
             LIST_INSERT_HEAD(&multi_link_links_2, li, next);
+            ++multi_link_num_links;
         }
     }
 
