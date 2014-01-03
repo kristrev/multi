@@ -29,7 +29,6 @@
 #include "multi_common.h"
 #include "multi_core.h"
 #include "multi_shared.h"
-#include "multi_cmp.h"
 #include "multi_macros.h"
 
 extern char *optarg;
@@ -202,7 +201,6 @@ void multi_test_visible_loop(struct multi_config *mc){
                 }
             }
         }
-
     }
 }
 
