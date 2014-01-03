@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <glib.h>
 #include <libmnl/libmnl.h>
+#include <sys/queue.h>
 
 #include "multi_shared.h"
 #include "multi_link_shared.h"
@@ -41,7 +42,8 @@ struct mnl_socket *multi_link_nl_event;
 //limnl structure used only for setting parameters
 struct mnl_socket *multi_link_nl_set; 
 //The link module's list of all links
-GSList *multi_link_links; 
+GSList *multi_link_links;
+LIST_HEAD(multi_link_links_head, multi_link_info) multi_link_links_2;
 //The pipe used for communication between dhcp and link module
 int32_t multi_link_dhcp_pipes[2]; 
 

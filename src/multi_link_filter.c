@@ -35,7 +35,7 @@
 #include "multi_macros.h"
 #include "multi_cmp.h"
 
-extern GSList *multi_link_links;
+extern struct multi_link_links_head multi_link_links_2;
 extern struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name, 
         uint32_t metric);
 
@@ -81,7 +81,6 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     uint8_t devname[IFNAMSIZ];
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
-	GSList *li_static_tmp = NULL;
     uint8_t wireless_mode = 0;
 
     /* Tunneling interfaces have no ARP header, so they can be ignored, 
@@ -156,7 +155,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                 MULTI_DEBUG_PRINT(stderr, "Found link %s\n", devname);
 
             //The order in which links are stored in this list is not important
-            multi_link_links = g_slist_prepend(multi_link_links, (gpointer) li); 
+            LIST_INSERT_HEAD(&multi_link_links_2, li, next);
         }
     }
 
@@ -168,13 +167,22 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
     struct ifaddrmsg *ifa = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct filter_msg *msg;
+    struct multi_link_info *li = NULL;
 
-    if(g_slist_find_custom(multi_link_links, ifa, multi_cmp_ifidx_flush)){
+    //The reason I need to check in multi_link_links is interfaces that are
+    //ignored, or that have come up after I dumped the interface info. The first
+    //case interfaces should be ignored, while the second case interfaces will
+    //be seen later
+    LIST_FIND_CUSTOM(li, &multi_link_links_2, next, ifa, multi_cmp_ifidx_flush);
+    if(li){
         //Copy the nlmsg, as I will recycle it later when I delete everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
                 sizeof(TAILQ_ENTRY(filter_msg)));
         memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
         TAILQ_INSERT_TAIL(&(ip_info->ip_addr_n), msg, list_ptr);
+
+        MULTI_DEBUG_PRINT(stderr, "Deleting address for interface %u\n",
+                ifa->ifa_index);
     }
 
     return MNL_CB_OK;
@@ -270,8 +278,6 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
-    printf("Rule for table %u\n", rt->rtm_table);
-
     if(!tb[FRA_SRC])
         return MNL_CB_OK;
 
@@ -280,6 +286,8 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
         if(tb[FRA_PRIORITY])
             fra_priority = mnl_attr_get_u32(tb[FRA_PRIORITY]);
 
+        //TODO: Add a check for interface here as well, do our best not to do
+        //anything with interfaces that should be ignored?
         MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
                 fra_priority);
 
@@ -297,9 +305,9 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
-    GSList *list_tmp = NULL;
-    int32_t ifiIdx = 0;
+    uint32_t ifiIdx = 0;
     struct filter_msg *msg;
+    struct multi_link_info *li = NULL;
 
     //Ignore table 255 (local). It is updated automatically as IPs are
     //added/deleted. This was the cause of the PPP bug, the IP was removed from
@@ -316,14 +324,14 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
         //any interface NOT on this list is either specified as ignore, or have
         //come up after boot and will be ignored
         ifiIdx = mnl_attr_get_u32(tb[RTA_OIF]);
-        list_tmp = g_slist_find_custom(multi_link_links, &ifiIdx, 
-                multi_cmp_ifidx);
+        LIST_FIND_CUSTOM(li, &multi_link_links_2, next, &ifiIdx, multi_cmp_ifidx);
 
-        if(list_tmp == NULL){
-            MULTI_DEBUG_PRINT(stderr, "Not deleting route for idx %d\n", 
+        if(li == NULL){
+            MULTI_DEBUG_PRINT(stderr, "Not deleting route for idx %u\n", 
                     ifiIdx);
             return MNL_CB_OK;
-        }
+        } else
+            MULTI_DEBUG_PRINT(stderr, "Deleting route for idx %u\n", ifiIdx);
 
         //Clear out the whole routing table, multi will control everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 

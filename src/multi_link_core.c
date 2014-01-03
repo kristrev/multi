@@ -552,7 +552,6 @@ static void multi_link_populate_links_list(){
     struct rtgenmsg *rt;
     uint32_t seq;
 
-    //Initialise properly KRISTIAN!!!!!
     memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
 
     //Sets room for one nlmsghdr in buffer buf
@@ -800,9 +799,8 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
 /* TODO: Configuration */
 void* multi_link_module_init(void *arg){
     struct multi_core_sync *mcs = (struct multi_core_sync *) arg;
-    //int32_t dev_idx_pipe = mcs->mc->socket_pipe[1];
 
-    multi_link_links = NULL;
+    LIST_INIT(&multi_link_links_2);
 
     pthread_mutex_lock(&(mcs->sync_mutex));
     pthread_cond_signal(&(mcs->sync_cond));

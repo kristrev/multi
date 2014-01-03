@@ -21,6 +21,7 @@
 #include <glib.h>
 #include <pthread.h>
 #include <net/if.h>
+#include <sys/queue.h>
 
 #include "multi_dhcp_common.h"
 #include "multi_common.h"
@@ -52,6 +53,8 @@ struct multi_link_info{
     //This might not have to be locked at all (can leave with some level of 
     //instability), but have rwlock for now
     GStaticRWLock state_lock; 
+
+    LIST_ENTRY(multi_link_info) next;
 };
 
 #endif
