@@ -24,7 +24,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <linux/netlink.h>
-#include <glib.h>
+#include <sys/queue.h>
 
 #include "multi_common.h"
 #include "multi_core.h"
@@ -39,7 +39,10 @@ extern pthread_t multi_start(struct multi_config *mc);
 struct iface{
     int32_t ifi_idx;
     struct nlmsghdr *nlmsg;
+    LIST_ENTRY(iface) next;
 };
+
+static LIST_HEAD(iface_head, iface) iface_list;
 
 static gint test_match_idx(gconstpointer a, gconstpointer b){
     struct iface *ni = (struct iface*) a;
@@ -58,7 +61,6 @@ void multi_test_visible_loop(struct multi_config *mc){
     int32_t netlink_sock = 0;
     int32_t ifi_idx = 0;
     struct iface *ni = NULL;
-    GSList *ifaces = NULL, *ifaces_tmp = NULL;
 
     /* Needed to create the netlink messages  */
     struct sockaddr_nl src_addr, dest_addr;
@@ -71,6 +73,9 @@ void multi_test_visible_loop(struct multi_config *mc){
     struct timeval tv;
 
     memset(buf, 0, MAX_BUFSIZE);
+
+    /* Initialise list */
+    LIST_INIT(&iface_list);
 
     /* Define a private constant later! Needs to be set in netlink.h so that the
      * kernel will allow the socket to be created! */
@@ -127,6 +132,10 @@ void multi_test_visible_loop(struct multi_config *mc){
 
         //Repeat every UP message
         if(retval == 0){
+            for(ni = iface_list.lh_first; ni != NULL; ni = ni->next.le_next){
+                printf("Hei\n");
+            }
+#if 0
             ifaces_tmp = ifaces;
 
             while(ifaces_tmp){
@@ -137,7 +146,7 @@ void multi_test_visible_loop(struct multi_config *mc){
 
                 ifaces_tmp = g_slist_next(ifaces_tmp);
             }
-
+#endif
             tv.tv_sec = 30;
             tv.tv_usec = 0;
             continue;
@@ -156,11 +165,11 @@ void multi_test_visible_loop(struct multi_config *mc){
             memcpy(&ifi_idx, (buf+1), sizeof(int32_t));
 
             if(buf[0] == LINK_UP){
-                if(g_slist_find_custom(ifaces, &ifi_idx, test_match_idx))
-                    continue;
+                //if(g_slist_find_custom(ifaces, &ifi_idx, test_match_idx))
+                //    continue;
 
                 //Create a new iface, buffer the up message and add to list
-                ni = (struct iface *) malloc(sizeof(struct iface));
+                ni = (struct iface*) malloc(sizeof(struct iface));
                 ni->ifi_idx = ifi_idx;
                 ni->nlmsg = (struct nlmsghdr *) malloc(NLMSG_SPACE(retval));
                 memset(ni->nlmsg, 0, NLMSG_SPACE(retval));
@@ -168,7 +177,7 @@ void multi_test_visible_loop(struct multi_config *mc){
                 ni->nlmsg->nlmsg_flags = 0;
                 ni->nlmsg->nlmsg_len = NLMSG_SPACE(retval);
                 memcpy(NLMSG_DATA(ni->nlmsg), buf, retval);
-                ifaces = g_slist_prepend(ifaces, (void *) ni);
+                LIST_INSERT_HEAD(&iface_list, ni, next);
 
                 //Adjust the base pointer of the message and broadcast message
                 iov.iov_base = (void *) ni->nlmsg;
@@ -177,6 +186,7 @@ void multi_test_visible_loop(struct multi_config *mc){
                 MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about an UP "
                         "change in network state\n", retval);
             } else {
+#if 0
                 if(ifaces_tmp = g_slist_find_custom(ifaces, &ifi_idx, 
                             test_match_idx)){
                     //Forward message from MULTI
@@ -194,8 +204,8 @@ void multi_test_visible_loop(struct multi_config *mc){
                     free(ni);
                     ifaces = g_slist_remove_link(ifaces, ifaces_tmp);
                     g_slist_free_1(ifaces_tmp);
-
                 }
+#endif
             }
         }
 
