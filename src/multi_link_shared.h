@@ -51,7 +51,7 @@ struct multi_link_info{
     pthread_t dhcp_thread;
     //This might not have to be locked at all (can leave with some level of 
     //instability), but have rwlock for now
-    GStaticRWLock state_lock; 
+    GRWLock state_lock; 
 };
 
 #endif
