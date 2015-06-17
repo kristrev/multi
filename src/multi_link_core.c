@@ -156,7 +156,7 @@ static uint8_t multi_link_check_unique(struct multi_link_info *li,
 
         //Avoid comparing li with li. Locking in case a dhcp thread is about to
         //change info
-        g_static_rw_lock_reader_lock(&(li->state_lock));
+        g_rw_lock_reader_lock(&(li->state_lock));
         if(li->ifi_idx != li_tmp->ifi_idx){
             if(update)
                  unique = !(li->new_cfg.address.s_addr == 
@@ -166,7 +166,7 @@ static uint8_t multi_link_check_unique(struct multi_link_info *li,
                          li_tmp->cfg.address.s_addr);
         }
 
-        g_static_rw_lock_reader_unlock(&(li->state_lock));
+        g_rw_lock_reader_unlock(&(li->state_lock));
 
         if(!unique)
             break;
@@ -182,7 +182,7 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
     struct multi_config *mc = (struct multi_config *) user_data;
     int32_t probe_pipe = mc->socket_pipe[1];
 
-    g_static_rw_lock_reader_lock(&(li->state_lock));
+    g_rw_lock_reader_lock(&(li->state_lock));
     if(li->state == GOT_IP_DHCP || li->state == GOT_IP_STATIC_UP || 
             li->state == GOT_IP_STATIC || li->state == GOT_IP_PPP || 
             li->state == GOT_IP_AP){
@@ -196,7 +196,7 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
             if(write(li->decline_pipe[1], "a", 1) < 0){
                 MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
             }
-            g_static_rw_lock_reader_unlock(&(li->state_lock));
+            g_rw_lock_reader_unlock(&(li->state_lock));
             return;
         }
 
@@ -234,7 +234,7 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
             if(write(li->decline_pipe[1], "a", 1) < 0){
                 MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
             }
-            g_static_rw_lock_reader_unlock(&(li->state_lock));
+            g_rw_lock_reader_unlock(&(li->state_lock));
             return;
         }
 
@@ -271,7 +271,7 @@ static void multi_link_check_link(gpointer data, gpointer user_data){
         multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_DOWN);
     }
 
-    g_static_rw_lock_reader_unlock(&(li->state_lock));
+    g_rw_lock_reader_unlock(&(li->state_lock));
 }
 
 /* Remove all links that have been deleted. This is only used when 
@@ -334,7 +334,7 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
     li->ifi_idx = if_nametoindex((char*) dev_name);
     li->write_pipe = multi_link_dhcp_pipes[1];
     memcpy(&(li->dev_name), dev_name, strlen((char*) dev_name));
-    g_static_rw_lock_init(&(li->state_lock));
+    g_rw_lock_init(&(li->state_lock));
 
     if(pipe(li->decline_pipe) < 0){
         MULTI_DEBUG_PRINT(stderr, "Could not create decline pipe\n");

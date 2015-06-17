@@ -178,14 +178,14 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                         di->state = INIT;
 
                         /* Update link state and notify link module  */
-                        g_static_rw_lock_writer_lock(&(li->state_lock));
+                        g_rw_lock_writer_lock(&(li->state_lock));
                         //Only send if seend once
                         if(li->state != DHCP_IP_INVALID && li->state 
                                 != LINK_INVALID){
                             li->state = DHCP_IP_INVALID;
                             multi_dhcp_notify_link_module(li->write_pipe);
                         }
-                        g_static_rw_lock_writer_unlock(&(li->state_lock));
+                        g_rw_lock_writer_unlock(&(li->state_lock));
                     }
 
                     multi_dhcp_create_dhcp_msg(di);
