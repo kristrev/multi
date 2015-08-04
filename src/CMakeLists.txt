@@ -25,7 +25,9 @@ set(CPACK_PACKAGE_VERSION_MAJOR "0")
 set(CPACK_PACKAGE_VERSION_MINOR "1")
 set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Kristian R. Evensen <kristrev@celerway.com>")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/files/postinst")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_CURRENT_SOURCE_DIR}/files/postinst;${CMAKE_CURRENT_SOURCE_DIR}/files/postrm")
+set (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 include(CPack)
 
 add_executable(multi_client multi_multicast.c multi_core.c multi_dhcp_main.c
@@ -39,5 +41,5 @@ target_link_libraries(multi_client ${LIBMNL_LIBRARIES})
 target_link_libraries(multi_client ${LIBYAML_LIBRARIES})
 target_link_libraries(multi_client ${LIBIW_LIBRARY})
 target_link_libraries(multi_client ${CMAKE_THREAD_LIBS_INIT})
-install(TARGETS multi_client RUNTIME DESTINATION bin)
+install(TARGETS multi_client RUNTIME DESTINATION sbin)
 install(FILES ${PROJECT_SOURCE_DIR}/files/multi.init DESTINATION /etc/init.d PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE RENAME multi)
