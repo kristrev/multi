@@ -187,7 +187,7 @@ static int32_t multi_link_modify_ip(uint32_t msg_type, uint32_t flags,
     ifa->ifa_family = AF_INET; //Currently only IPv4
 
     //To avoid this rule that is generated automatically, set bitlen to 32
-    ifa->ifa_prefixlen = 32;     
+    ifa->ifa_prefixlen = 32 - (ffs(ntohl(li->cfg.netmask.s_addr)) - 1);     
     //Only reason for changing this is if loopback
     ifa->ifa_scope = RT_SCOPE_UNIVERSE; 
     ifa->ifa_index = li->ifi_idx;
@@ -272,8 +272,8 @@ void multi_link_configure_link(struct multi_link_info *li){
     /* Use metric as table ID for now */
     multi_link_modify_route(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
             li->metric, li, 0);
-    multi_link_modify_route(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
-            RT_TABLE_MAIN, li, li->metric);
+    /*multi_link_modify_route(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
+            RT_TABLE_MAIN, li, li->metric);*/
     MULTI_DEBUG_PRINT(stderr, "Done setting direct routes (iface %s idx %u)\n", 
             li->dev_name, li->ifi_idx); 
 
@@ -307,7 +307,7 @@ void multi_link_remove_link(struct multi_link_info *li){
     multi_link_modify_gateway(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, 
                 li->metric);
     
-    multi_link_modify_route(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, li->metric);
+    //multi_link_modify_route(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, li->metric);
     multi_link_modify_route(RTM_DELROUTE, 0, li->metric, li, 0);
 
     /* Delete IP address */
