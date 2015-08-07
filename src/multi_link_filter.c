@@ -151,8 +151,9 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                 MULTI_DEBUG_PRINT(stderr, "Link %s is wireless access point\n", 
                         devname);
                 li->state = LINK_DOWN_AP;                
-            } else
+            } else {
                 MULTI_DEBUG_PRINT(stderr, "Found link %s\n", devname);
+            }
 
             //The order in which links are stored in this list is not important
             LIST_INSERT_HEAD(&multi_link_links_2, li, next);

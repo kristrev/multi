@@ -426,6 +426,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                 
                 //Insert link into link list
                 LIST_INSERT_HEAD(&multi_link_links_2, li, next);
+                ++multi_link_num_links;
 
                 /* Add as a case here! The check for point to point  */
                 if(li_static != NULL && li_static->proto == PROTO_STATIC){
