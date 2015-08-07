@@ -1,4 +1,7 @@
 #!/bin/sh
 
-/usr/sbin/update-rc.d multi defaults
-/etc/init.d/multi restart
+#/usr/sbin/update-rc.d multi defaults
+#/etc/init.d/multi restart
+
+initctl reload-configuration
+initctl start multi
