@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
 /* taken from iputils which basically copied it from RFC 1071 */
 static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len, 
@@ -338,7 +339,7 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
         close(sock);
         //perror("Could not bind socket to port");
         MULTI_DEBUG_PRINT(stderr,"Could not bind socket to port for interface "
-                "%s (idx %u)", li->dev_name, li->ifi_idx);
+                "%s (idx %u) Error: %s\n", li->dev_name, li->ifi_idx, strerror(errno));
         return -1;
     }
 

@@ -25,7 +25,7 @@ case "$1" in
         ;; 
     stop)
         echo "Stopping MULTI network manager ..."
-        if start-stop-daemon --oknodo --exec ${MULTI_BIN} --stop; then
+        if start-stop-daemon --oknodo --exec ${MULTI_BIN} --stop --retry 2; then
             echo "MULTI was stopped."
         else
             echo "MULTI could not be stopped sucessfully."
@@ -34,12 +34,14 @@ case "$1" in
     restart|force-reload)
         #Put these as functions
         echo "Stopping MULTI network manager ..."
-        if start-stop-daemon --oknodo --exec ${MULTI_BIN} --stop; then
+        if start-stop-daemon --oknodo --exec ${MULTI_BIN} --stop --retry 2; then
             echo "MULTI was stopped."
         else
             echo "MULTI could not be stopped sucessfully."
             exit 1
         fi
+
+        sleep 5
 
         echo "Starting MULTI network manager as daemon ..." #Expand variable
         if start-stop-daemon --oknodo --exec ${MULTI_BIN} --start -- -d; then  #Start-deamen is fantastic
