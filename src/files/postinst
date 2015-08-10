@@ -3,5 +3,4 @@
 #/usr/sbin/update-rc.d multi defaults
 #/etc/init.d/multi restart
 
-systemctl reload multi
 systemctl start multi
