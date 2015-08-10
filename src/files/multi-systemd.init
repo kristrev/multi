@@ -1,0 +1,12 @@
+[Unit]
+Description=Multi network manager
+After=network.target
+
+[Service]
+ExecStart=/usr/local/sbin/multi_client
+Type=simple
+Restart=on-failure
+
+# 'sshd -D' leaks stderr and confuses things in conjunction with 'console log'
+StandardError=null
+StandardOutput=null
