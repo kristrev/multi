@@ -42,6 +42,6 @@ target_link_libraries(multi_client ${LIBYAML_LIBRARIES})
 target_link_libraries(multi_client ${LIBIW_LIBRARY})
 target_link_libraries(multi_client ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS multi_client RUNTIME DESTINATION /usr/local/sbin)
-install(FILES ${PROJECT_SOURCE_DIR}/files/multi-upstart.init DESTINATION
-        /etc/init/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-        RENAME multi.conf)
+install(FILES ${PROJECT_SOURCE_DIR}/files/multi-systemd.init DESTINATION
+        /lib/systemd/system/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+        RENAME multi.service)

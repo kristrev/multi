@@ -1,4 +1,3 @@
 #!/bin/sh
 
-initctl stop multi
-initctl reload-configuration
+systemctl stop multi
