@@ -1,3 +1,4 @@
 #!/bin/sh
 
 systemctl stop multi
+systemctl disable multi
