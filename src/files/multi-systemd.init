@@ -10,3 +10,6 @@ Restart=on-failure
 # 'sshd -D' leaks stderr and confuses things in conjunction with 'console log'
 StandardError=null
 StandardOutput=null
+
+[Install]
+WantedBy=multi-user.target
