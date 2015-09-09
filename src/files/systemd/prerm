@@ -2,3 +2,5 @@
 
 systemctl stop multi
 systemctl disable multi
+
+sed -i '/multi.log/d' /etc/logrotate.d/rsyslog

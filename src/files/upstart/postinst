@@ -5,3 +5,6 @@
 
 initctl reload-configuration
 initctl start multi
+
+sed -i '/multi.log/d' /etc/logrotate.d/rsyslog
+sed -i '/\/var\/log\/syslog/a /var/log/multi.log' /etc/logrotate.d/rsyslog

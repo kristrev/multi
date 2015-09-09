@@ -2,3 +2,5 @@
 
 initctl stop multi
 initctl reload-configuration
+
+sed -i '/multi.log/d' /etc/logrotate.d/rsyslog
