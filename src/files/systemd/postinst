@@ -4,4 +4,4 @@
 #/etc/init.d/multi restart
 
 systemctl enable multi
-systemctl start multi
+systemctl start multi || true
