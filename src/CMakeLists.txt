@@ -2,7 +2,7 @@ include(FindPkgConfig)
 
 #Standard stuff
 cmake_minimum_required(VERSION 2.6)
-project(multi_client)
+project(multi-client)
 
 find_package(Threads)
 
