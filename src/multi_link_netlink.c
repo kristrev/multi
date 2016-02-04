@@ -305,7 +305,7 @@ void multi_link_remove_link(struct multi_link_info *li){
         multi_link_modify_gateway(RTM_DELROUTE, 0, li->metric, li, 0);
     
     //multi_link_modify_gateway(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, 
-                li->metric);
+                //li->metric);
     
     //multi_link_modify_route(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, li->metric);
     multi_link_modify_route(RTM_DELROUTE, 0, li->metric, li, 0);
