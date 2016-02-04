@@ -282,8 +282,8 @@ void multi_link_configure_link(struct multi_link_info *li){
         MULTI_DEBUG_PRINT(stderr, "Not setting gateway for %s (idx %u)\n", 
                 li->dev_name, li->ifi_idx); 
     } else {
-        multi_link_modify_gateway(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
-                RT_TABLE_MAIN, li, li->metric);
+        /*multi_link_modify_gateway(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
+                RT_TABLE_MAIN, li, li->metric);*/
         multi_link_modify_gateway(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_APPEND, 
                 li->metric, li, 0);
         MULTI_DEBUG_PRINT(stderr, "Done setting routes in main table "
@@ -304,7 +304,7 @@ void multi_link_remove_link(struct multi_link_info *li){
     if(li->state != GOT_IP_AP)
         multi_link_modify_gateway(RTM_DELROUTE, 0, li->metric, li, 0);
     
-    multi_link_modify_gateway(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, 
+    //multi_link_modify_gateway(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, 
                 li->metric);
     
     //multi_link_modify_route(RTM_DELROUTE, 0, RT_TABLE_MAIN, li, li->metric);
