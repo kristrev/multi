@@ -30,6 +30,7 @@
 #include "multi_link_core.h"
 #include "multi_link_filter.h"
 #include "multi_link_shared.h"
+#include "multi_link_netlink.h"
 
 #include "multi_macros.h"
 #include "multi_cmp.h"
@@ -280,25 +281,27 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
-    if(!tb[FRA_SRC])
+    if(!tb[FRA_PRIORITY])
         return MNL_CB_OK;
 
-    //Delete ANY rule which does not point to one of the default tables
-    if(rt->rtm_table > 0 && rt->rtm_table < 253){
-        if(tb[FRA_PRIORITY])
-            fra_priority = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+    fra_priority = mnl_attr_get_u32(tb[FRA_PRIORITY]);
 
-        //TODO: Add a check for interface here as well, do our best not to do
-        //anything with interfaces that should be ignored?
-        MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
-                fra_priority);
+    //The last part of this check is not perfect, but it works for now. Will
+    //break when someone adds a rule with a larger priority
+    if (fra_priority != ADDR_RULE_PRIO && fra_priority != NW_RULE_PRIO &&
+        fra_priority <= DEF_RULE_PRIO)
+        return MNL_CB_OK;
 
-        /* Add the rule nlmsg to list */
-        msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
-                sizeof(TAILQ_ENTRY(filter_msg)));
-        memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
-        TAILQ_INSERT_TAIL(&(ip_info->ip_rules_n), msg, list_ptr);
-    }
+    //TODO: Add a check for interface here as well, do our best not to do
+    //anything with interfaces that should be ignored?
+    MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
+            fra_priority);
+
+    /* Add the rule nlmsg to list */
+    msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
+            sizeof(TAILQ_ENTRY(filter_msg)));
+    memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
+    TAILQ_INSERT_TAIL(&(ip_info->ip_rules_n), msg, list_ptr);
 
     return MNL_CB_OK;
 }
