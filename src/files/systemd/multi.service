@@ -3,8 +3,8 @@ Description=Multi network manager
 After=network.target
 
 [Service]
-ExecStart=/usr/local/sbin/multi_client
-Type=simple
+ExecStart=/usr/local/sbin/multi_client -d
+Type=forking
 Restart=on-failure
 
 # 'sshd -D' leaks stderr and confuses things in conjunction with 'console log'
