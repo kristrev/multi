@@ -66,11 +66,11 @@ target_link_libraries(multi_client ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS multi_client RUNTIME DESTINATION /usr/local/sbin)
 
 if (INIT_DAEMON STREQUAL "systemd")
-    install(FILES ${PROJECT_SOURCE_DIR}/files/multi-systemd.init DESTINATION
+    install(FILES ${PROJECT_SOURCE_DIR}/files/systemd/multi.service DESTINATION
            /lib/systemd/system/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
            RENAME multi.service)
 elseif(INIT_DAEMON STREQUAL "upstart")
-    install(FILES ${PROJECT_SOURCE_DIR}/files/multi-upstart.init DESTINATION
+    install(FILES ${PROJECT_SOURCE_DIR}/files/upstart/multi.conf DESTINATION
             /etc/init/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
             RENAME multi.conf)
 endif()
