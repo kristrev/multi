@@ -95,7 +95,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
     if((wireless_mode = multi_link_check_wlan_mode(devname)))
         if(wireless_mode == 6){
-            MULTI_DEBUG_PRINT(stderr, "Interface %s is wireless monitor, "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s is wireless monitor, "
                     "ignoring\n", devname);
             return MNL_CB_OK;
         }
@@ -119,7 +119,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
             //TODO: Assumes that there is initially always room for every link
             if(li_static != NULL){
                 if(li_static->proto == PROTO_IGNORE){
-                    MULTI_DEBUG_PRINT(stderr, "Ignoring %s (idx %d) \n", 
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignoring %s (idx %d) \n", 
                             devname, ifi->ifi_index);
                     return MNL_CB_OK;
                 } else 
@@ -130,15 +130,15 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 
 			/* If link exists in static link list, set link to GOT_STATIC */
 			if(li_static != NULL && li_static->proto == PROTO_STATIC){
-				MULTI_DEBUG_PRINT(stderr, "Link %s assigned static IP\n", 
+				MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s assigned static IP\n", 
                         devname);
 
                 //I will only set IP, when interface is only up.
                 if(ifi->ifi_flags & IFF_RUNNING){
-                    MULTI_DEBUG_PRINT(stderr, "Link %s is RUNNING\n", devname);
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is RUNNING\n", devname);
                     li->state = GOT_IP_STATIC;
                 } else if(ifi->ifi_flags & IFF_UP){
-                    MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", devname);
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is UP\n", devname);
 				    li->state = GOT_IP_STATIC_UP;
                 }
 
@@ -146,14 +146,14 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
 			} else if(ifi->ifi_type == ARPHRD_PPP){
                 /* PPP will be dealt with separatley, since they get the IP
                  * remotely by themself */
-                MULTI_DEBUG_PRINT(stderr, "Link %s is PPP!\n", devname);
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is PPP!\n", devname);
                 li->state = LINK_DOWN_PPP;
             } else if(wireless_mode == 3){
-                MULTI_DEBUG_PRINT(stderr, "Link %s is wireless access point\n", 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is wireless access point\n", 
                         devname);
                 li->state = LINK_DOWN_AP;                
             } else {
-                MULTI_DEBUG_PRINT(stderr, "Found link %s\n", devname);
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Found link %s\n", devname);
             }
 
             //The order in which links are stored in this list is not important
@@ -184,7 +184,7 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
         memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
         TAILQ_INSERT_TAIL(&(ip_info->ip_addr_n), msg, list_ptr);
 
-        MULTI_DEBUG_PRINT(stderr, "Deleting address for interface %u\n",
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Deleting address for interface %u\n",
                 ifa->ifa_index);
     }
 
@@ -214,12 +214,12 @@ int32_t multi_link_filter_ppp(const struct nlmsghdr *nlh, void *data){
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.address;
         inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
-        MULTI_DEBUG_PRINT(stderr, "Local address: %s \n", addr_buf);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Local address: %s \n", addr_buf);
 
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.broadcast;
         inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
-        MULTI_DEBUG_PRINT(stderr, "Remote address: %s\n", addr_buf);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Remote address: %s\n", addr_buf);
     }
 
     return MNL_CB_OK;
@@ -259,12 +259,12 @@ int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data){
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.address;
         inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
-        MULTI_DEBUG_PRINT(stderr, "Local address: %s \n", addr_buf);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Local address: %s \n", addr_buf);
 
         sa.sin_family = AF_INET;
         sa.sin_addr = li->cfg.netmask;
         inet_ntop(AF_INET, &(sa.sin_addr), (char*) addr_buf, INET_ADDRSTRLEN);
-        MULTI_DEBUG_PRINT(stderr, "Netmask: %s\n", addr_buf);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Netmask: %s\n", addr_buf);
     }
 
     return MNL_CB_OK;
@@ -294,7 +294,7 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 
     //TODO: Add a check for interface here as well, do our best not to do
     //anything with interfaces that should be ignored?
-    MULTI_DEBUG_PRINT(stderr,  "Added rule with id %u to flush list\n", 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr,  "Added rule with id %u to flush list\n", 
             fra_priority);
 
     /* Add the rule nlmsg to list */
@@ -332,11 +332,11 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
         LIST_FIND_CUSTOM(li, &multi_link_links_2, next, &ifiIdx, multi_cmp_ifidx);
 
         if(li == NULL){
-            MULTI_DEBUG_PRINT(stderr, "Not deleting route for idx %u\n", 
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Not deleting route for idx %u\n", 
                     ifiIdx);
             return MNL_CB_OK;
         } else
-            MULTI_DEBUG_PRINT(stderr, "Deleting route for idx %u\n", ifiIdx);
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Deleting route for idx %u\n", ifiIdx);
 
         //Clear out the whole routing table, multi will control everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 

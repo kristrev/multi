@@ -17,6 +17,8 @@
 #ifndef MULTI_COMMON_H
 #define MULTI_COMMON_H
 
+#include <syslog.h>
+
 #define MAX_BUFSIZE 1500
 
 typedef enum{
@@ -66,18 +68,33 @@ typedef enum{
     DELETE_LINK 
 } link_state;
 
-#define MULTI_LOG_PREFIX "[%d:%d:%d %d/%d/%d %s:%d]: "
-#define MULTI_LOG_PREFIX_ARG __FILE__, __LINE__
+#define MULTI_LOG_PREFIX "[%.2d:%.2d:%.2d %.2d/%.2d/%d]: "
 #define MULTI_DEBUG_PRINT2(fd, ...){fprintf(fd, __VA_ARGS__);fflush(fd);}
+#define MULTI_DEBUG_SYSLOG(priority, ...){syslog(LOG_MAKEPRI(LOG_DAEMON, priority), __VA_ARGS__);}
 //The ## is there so that I dont have to fake an argument when I use the macro
 //on string without arguments!
-#define MULTI_DEBUG_PRINT(fd, _fmt, ...){ \
+#define MULTI_DEBUG_PRINT(fd, _fmt, ...) \
+    do { \
     time_t rawtime; \
     struct tm *curtime; \
     time(&rawtime); \
     curtime = gmtime(&rawtime); \
     MULTI_DEBUG_PRINT2(fd, MULTI_LOG_PREFIX _fmt, curtime->tm_hour, \
-            curtime->tm_min, curtime->tm_sec, curtime->tm_mday, \
-            curtime->tm_mon + 1, 1900 + curtime->tm_year, \
-            MULTI_LOG_PREFIX_ARG, ##__VA_ARGS__);}
+        curtime->tm_min, curtime->tm_sec, curtime->tm_mday, \
+        curtime->tm_mon + 1, 1900 + curtime->tm_year, \
+        ##__VA_ARGS__);} while(0)
+
+#define MULTI_DEBUG_PRINT_SYSLOG(fd, _fmt, ...) \
+    do { \
+    time_t rawtime; \
+    struct tm *curtime; \
+    time(&rawtime); \
+    curtime = gmtime(&rawtime); \
+    if (1) \
+        MULTI_DEBUG_SYSLOG(LOG_INFO, _fmt, ##__VA_ARGS__); \
+    MULTI_DEBUG_PRINT2(fd, MULTI_LOG_PREFIX _fmt, \
+        curtime->tm_hour, \
+        curtime->tm_min, curtime->tm_sec, curtime->tm_mday, \
+        curtime->tm_mon + 1, 1900 + curtime->tm_year, \
+        ##__VA_ARGS__);} while(0)
 #endif

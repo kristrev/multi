@@ -104,7 +104,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
             tv.tv_usec = 0;
 
             if(di->output_timer){
-                MULTI_DEBUG_PRINT(stderr,"Next timeout will expire in %u sec "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Next timeout will expire in %u sec "
                         "on interface %s (iface idx %u)\n", 
                         (uint32_t) tv.tv_sec, li->dev_name, li->ifi_idx);
                 di->output_timer = 0;
@@ -126,7 +126,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
             di->retrans_count++; //Start at 0, to get expected behavior
 
             if(di->retrans_count > REBOOTING_THRESHOLD){
-                MULTI_DEBUG_PRINT(stderr, "Could not get a reply after %u" 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not get a reply after %u" 
                         "timeouts, falling back to INIT/REBOOTING for interface" 
                         "%s\n", di->retrans_count, li->dev_name);
                
@@ -146,7 +146,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                 case REBOOTING:
                     /* If REBOOTING fails a sufficient number of times,  */
                     if(di->retrans_count > REBOOTING_THRESHOLD){
-                        MULTI_DEBUG_PRINT(stderr,"Rebooting threshold reached,"
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Rebooting threshold reached,"
                                 "going back to INIT.\n");
                         di->state = INIT;
                         di->retrans_count = 0;
@@ -159,7 +159,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                     t_now = time(NULL);
 
                     if(t_now >= di->t2){
-                        MULTI_DEBUG_PRINT(stderr,"T2 has expired for %s (iface" 
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr,"T2 has expired for %s (iface" 
                                 "idx %u)\n", li->dev_name, li->ifi_idx);
                         di->retrans_count = 0; //Switch state
                         di->state = REBINDING;
@@ -170,7 +170,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                 case REBINDING:
                     /* Need a check for lease, if lease has expired */
                     if(t_now >= di->lease){
-                        MULTI_DEBUG_PRINT(stderr,"Lease has expired for %s" 
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Lease has expired for %s" 
                                 "(iface idx %u)\n", li->dev_name, li->ifi_idx);
                         di->retrans_count = 0;
                         di->req_sent_time = 0;
@@ -201,7 +201,7 @@ static void multi_dhcp_event_loop(struct multi_dhcp_info *di,
                 recv(di->udp_sock, buffer, 1500, 0);
             } else if(FD_ISSET(li->decline_pipe[0], &read_fds)){
                 read(li->decline_pipe[0], buffer, 1500);
-                MULTI_DEBUG_PRINT(stderr, "Must decline IP for %s\n", 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Must decline IP for %s\n", 
                         li->dev_name);
                 di->state = DECLINE;
                 multi_dhcp_create_dhcp_msg(di);
@@ -222,7 +222,7 @@ static void multi_dhcp_cleanup(void *arg){
 	if(di->udp_sock > 0)
 	    close(di->udp_sock);
 
-    MULTI_DEBUG_PRINT(stderr,"Finished DHCP cleanup for interface with index" 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr,"Finished DHCP cleanup for interface with index" 
             "%u. Sent RELEASE and closed sockets %u and %u.\n", di->ifidx, 
             di->raw_sock, di->udp_sock);
 }
@@ -260,11 +260,11 @@ void* multi_dhcp_main(void *arg){
     }
    
     if(di.state == REBOOT_DHCP){
-        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP REBOOT on interface %s " 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Waiting for DHCP REBOOT on interface %s " 
                 "(iface idx %u). RAW socket: %u UDP socket: %u\n", li->dev_name,
                 li->ifi_idx, di.raw_sock, di.udp_sock);
     } else{
-        MULTI_DEBUG_PRINT(stderr,"Waiting for DHCP on interface %s (iface idx " 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Waiting for DHCP on interface %s (iface idx " 
                 "%u). RAW socket: %u UDP socket: %u\n", li->dev_name, 
                 li->ifi_idx, di.raw_sock, di.udp_sock);
     }

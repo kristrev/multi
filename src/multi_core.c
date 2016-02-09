@@ -36,7 +36,7 @@ static uint8_t multi_core_store_address(struct multi_link_info_static *mlis,
     struct in_addr ipaddr;
     
     if(inet_pton(AF_INET, value_data, &ipaddr) == 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not convert %s (invalid parameter?)\n", 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not convert %s (invalid parameter?)\n", 
                 value_data);
         return 1;
     }
@@ -52,7 +52,7 @@ static uint8_t multi_core_store_address(struct multi_link_info_static *mlis,
     } else if(!strcmp(key_data, GATEWAY))
         memcpy(&(mlis->cfg_static.gateway), &ipaddr, sizeof(struct in_addr));
     else {
-        MULTI_DEBUG_PRINT(stderr, "Found unknown parameter %s\n", key_data);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Found unknown parameter %s\n", key_data);
         return 1;
     }
 
@@ -74,7 +74,7 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
 
     while(1){
         if(!yaml_parser_parse(parser, &key)){
-            MULTI_DEBUG_PRINT(stderr, "Could not parse key\n");
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not parse key\n");
             error = 1;
             break;
         }
@@ -82,7 +82,7 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
         if(key.type == YAML_MAPPING_END_EVENT){
             yaml_event_delete(&key);
             if((addr_count > 0 && addr_count != 2) || !proto){
-                MULTI_DEBUG_PRINT(stderr, "Required information"
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Required information"
                         "(address/netmask/proto) is missing\n");
                 error = 1;
             }
@@ -90,11 +90,11 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
             break;
         } else if(key.type == YAML_SCALAR_EVENT){
             if(!yaml_parser_parse(parser, &value)){
-                MULTI_DEBUG_PRINT(stderr, "Could not parse value\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not parse value\n");
                 error = 1;
                 break;
             } else if(value.type != YAML_SCALAR_EVENT){
-                MULTI_DEBUG_PRINT(stderr, "Found something else than scalar\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Found something else than scalar\n");
                 yaml_event_delete(&value);
                 error = 1;
                 break;
@@ -107,7 +107,7 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
                 metric = atoi(value_data);
                 //Metric of 0 is not allowed
                 if(!metric || metric > MAX_NUM_LINKS){
-                    MULTI_DEBUG_PRINT(stderr, "Invalid metric\n");
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Invalid metric\n");
                     error = 1;
                     break;
                 } else {
@@ -116,7 +116,7 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
 
                     //Check if metric is set
                     if(multi_shared_metrics_set & (1<<(metric-1))){
-                        MULTI_DEBUG_PRINT(stderr, 
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr, 
                                 "Metric for %s is already used\n", 
                                 mlis->dev_name);
                         error = 1;
@@ -136,7 +136,7 @@ uint8_t multi_core_parse_iface_info(struct multi_link_info_static *mlis,
                 else if(!strcmp(value_data, "ignore"))
                     mlis->proto = PROTO_IGNORE;
                 else{
-                    MULTI_DEBUG_PRINT(stderr, "Unknown protocol\n");
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Unknown protocol\n");
                     error = 1;
                     break;
                 }
@@ -164,7 +164,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
     TAILQ_INIT(&multi_shared_static_links);
 
     if((cfgfile = fopen(cfg_filename, "rb")) == NULL){
-        MULTI_DEBUG_PRINT(stderr, "Could not open configuration file\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not open configuration file\n");
         error = 1;
         return error;
     }
@@ -175,7 +175,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
 
     while(1){
         if(!yaml_parser_parse(&parser, &event)){
-            MULTI_DEBUG_PRINT(stderr, "Parsing failed\n");
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parsing failed\n");
             error = 1;
             break;
         }
@@ -187,7 +187,7 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
             break;
         } else if(event.type == YAML_SCALAR_EVENT){
             if(strlen(event.data.scalar.value) > IFNAMSIZ){
-                MULTI_DEBUG_PRINT(stderr, "Interface name is too long\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface name is too long\n");
                 error = 1;
                 break;
             }
@@ -204,25 +204,25 @@ static uint8_t multi_core_parse_config(uint8_t *cfg_filename){
 
             //Make sure next event is mapping!
             if(!yaml_parser_parse(&parser, &event)){
-                MULTI_DEBUG_PRINT(stderr, "Parsing failed\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parsing failed\n");
                 error = 1;
                 break;
             } else if(event.type != YAML_MAPPING_START_EVENT){
-                MULTI_DEBUG_PRINT(stderr, "Configuration file is incorrect." 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Configuration file is incorrect." 
                         "No information for interface\n");
                 error = 1;
                 break;
             }
             
             if(multi_core_parse_iface_info(mlis, &parser)){
-                MULTI_DEBUG_PRINT(stderr, 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, 
                         "Parsing of configuration file failed\n");
                 error = 1;
                 break;
             } else {
                 TAILQ_INSERT_TAIL(&multi_shared_static_links, mlis, 
                         list_ptr);
-                MULTI_DEBUG_PRINT(stderr, "Interface %s added to static list\n", 
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s added to static list\n", 
                         mlis->dev_name);
             }
         }
@@ -251,7 +251,7 @@ struct multi_config* multi_core_initialize_config(uint8_t *cfg_file,
 
 
     if(pipe(mc->socket_pipe) == -1){
-        MULTI_DEBUG_PRINT(stderr,"Failed to create pipe\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Failed to create pipe\n");
         return NULL;
     }
     
@@ -277,7 +277,7 @@ static void* multi_core_init(void *arg){
     pthread_cond_wait(&(mcs.sync_cond), &(mcs.sync_mutex));
     pthread_mutex_unlock(&(mcs.sync_mutex));
 
-    MULTI_DEBUG_PRINT(stderr,"MULTI is ready and running\n");
+    MULTI_DEBUG_PRINT_SYSLOG(stderr,"MULTI is ready and running\n");
 
     pthread_mutex_lock(&(mcs_main->sync_mutex));
     pthread_cond_signal(&(mcs_main->sync_cond));

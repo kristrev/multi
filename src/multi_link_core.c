@@ -107,7 +107,7 @@ static void multi_link_notify_probing(int32_t probe_pipe, uint32_t ifi_idx,
     buffer[0] = state;
     memcpy((buffer + 1), &ifi_idx, sizeof(ifi_idx));
     if(write(probe_pipe, buffer, sizeof(buffer)) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not send link notification\n"); 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not send link notification\n"); 
     }
 }
 
@@ -123,11 +123,11 @@ static void multi_link_check_ppp(void* data, void* user_data){
         if(li->state != GOT_IP_PPP){
             //Need to treat this in a special way! Remove li, keep
             //li and have some sort of timeout?
-            MULTI_DEBUG_PRINT(stderr, "Could not get info for PPP link %u "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not get info for PPP link %u "
                     "(check_ppp)!\n", li->ifi_idx);
         } else{
             multi_link_remove_ppp(li);
-            MULTI_DEBUG_PRINT(stderr, "Got info for PPP link %u "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Got info for PPP link %u "
                     "(check_ppp)!\n", li->ifi_idx);
         }
     } else if(li->state == LINK_DOWN_AP)
@@ -180,7 +180,7 @@ static void multi_link_check_link(void *data, void *user_data){
             li->state = WAITING_FOR_DHCP;
             memset(&li->cfg, 0, sizeof(li->cfg));
             if(write(li->decline_pipe[1], "a", 1) < 0){
-                MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not decline IP\n");
             }
             pthread_mutex_unlock(&(li->state_lock));
             return;
@@ -189,17 +189,17 @@ static void multi_link_check_link(void *data, void *user_data){
         //TODO: Add error checks!
         multi_link_configure_link(li);
         if(li->state == GOT_IP_STATIC_UP){
-            MULTI_DEBUG_PRINT(stderr, "IP address set for %s (iface idx %u)\n",
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "IP address set for %s (iface idx %u)\n",
                     li->dev_name, li->ifi_idx);
             //Do not advertise interfaces that are only UP, they can't be used
             //yet
             li->state = LINK_UP_STATIC_IFF;
             return;
         } else
-            MULTI_DEBUG_PRINT(stderr, "IP address, routes and rules set for "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "IP address, routes and rules set for "
                     "device %s (iface idx %u)\n", li->dev_name, li->ifi_idx);
 
-        MULTI_DEBUG_PRINT(stderr, "M U %s %u %u\n", li->dev_name, 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "M U %s %u %u\n", li->dev_name, 
                 li->ifi_idx, li->metric); 
         multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_UP);
 
@@ -213,12 +213,12 @@ static void multi_link_check_link(void *data, void *user_data){
 			li->state = LINK_UP;
         }
     } else if(li->state == DHCP_IP_CHANGED){
-        MULTI_DEBUG_PRINT(stderr, "Link %s changed IP\n", li->dev_name);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s changed IP\n", li->dev_name);
 
         if(mc->unique && !multi_link_check_unique(li, 1)){
             li->state = WAITING_FOR_DHCP;
             if(write(li->decline_pipe[1], "a", 1) < 0){
-                MULTI_DEBUG_PRINT(stderr, "Could not decline IP\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not decline IP\n");
             }
             pthread_mutex_unlock(&(li->state_lock));
             return;
@@ -234,7 +234,7 @@ static void multi_link_check_link(void *data, void *user_data){
         li->state = LINK_UP;
         multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_UP);
     } else if (li->state == DHCP_IP_INVALID){
-        MULTI_DEBUG_PRINT(stderr, "Link %s IP is marked as invalid\n", 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s IP is marked as invalid\n", 
                 li->dev_name);
         //Delete information about link
         multi_link_remove_link(li);
@@ -244,12 +244,12 @@ static void multi_link_check_link(void *data, void *user_data){
         multi_link_notify_probing(probe_pipe, li->ifi_idx, LINK_DOWN);
         li->state = LINK_INVALID;
     } else if(li->state == DHCP_FAILED){
-        MULTI_DEBUG_PRINT(stderr, "DHCP has failed, will clean up and "
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "DHCP has failed, will clean up and "
                 "remove thread!\n");
         
         /* Remove routes if link has an IP */
         if(li->cfg.address.s_addr != 0){
-            MULTI_DEBUG_PRINT(stderr, "Remove routes\n");
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Remove routes\n");
             multi_link_remove_link(li);
         }
 
@@ -273,7 +273,7 @@ static void multi_link_clean_links(){
         /* No need for lock here, the state DELETE_LINK is ONLY set by this 
          * thread and DHCP thread has been cancelled */
         if(li_tmp->state == DELETE_LINK){
-            MULTI_DEBUG_PRINT(stderr, "Will delete %s\n", li_tmp->dev_name);
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will delete %s\n", li_tmp->dev_name);
             LIST_REMOVE(li_tmp, next);
             --multi_link_num_links;
             free(li_tmp);
@@ -308,7 +308,7 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
     pthread_mutex_init(&(li->state_lock), NULL);
 
     if(pipe(li->decline_pipe) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not create decline pipe\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create decline pipe\n");
     }
 
     return li;
@@ -316,7 +316,7 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
 
 static void multi_link_delete_link(struct multi_link_info *li, 
     uint32_t probe_pipe){
-    MULTI_DEBUG_PRINT(stderr, "M D %s %u %u\n", li->dev_name, 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "M D %s %u %u\n", li->dev_name, 
             li->ifi_idx, li->metric);
 
     if(li->cfg.address.s_addr != 0)
@@ -360,7 +360,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
      * See linux/if_arp.h for different definitions */
     if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
         if_indextoname(ifi->ifi_index, (char*) if_name);
-        MULTI_DEBUG_PRINT(stderr, "Interface has no ARP header, most likely a "
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface has no ARP header, most likely a "
                 "tunnel, ignoring (%s)\n", if_name);
         return;
     }
@@ -368,7 +368,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     if_indextoname(ifi->ifi_index, (char*) if_name);
 
     if(if_name[0] > 0 && strstr((char*) if_name, "ifb")){
-		MULTI_DEBUG_PRINT(stderr, "Interface %s is incoming, ignoring\n", 
+		MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s is incoming, ignoring\n", 
                 if_name);
 		return;
 	}
@@ -383,13 +383,13 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
         if (ifi->ifi_flags & IFF_RUNNING){
         //IF_OPER_UP == 6, defined in linux/if.h, chaos with includes
         //if(iface_state == 6){
-            MULTI_DEBUG_PRINT(stderr, "Interface %s (%u) is RUNNING, "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s (%u) is RUNNING, "
                     "length %u\n", if_name, ifi->ifi_index,
                     multi_link_num_links);
  
             if((wireless_mode = multi_link_check_wlan_mode(if_name)))
                 if(wireless_mode == 6){
-                    MULTI_DEBUG_PRINT(stderr, "Interface %s is monitor, "
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s is monitor, "
                             "ignoring\n", if_name);
                     return;
                 }
@@ -399,11 +399,11 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
             if(li != NULL){
                 if(li->state == LINK_UP_STATIC_IFF){
-                    MULTI_DEBUG_PRINT(stderr, "Interface %s (idx %u) has "
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s (idx %u) has "
                         "gone from UP to RUNNING\n", if_name, ifi->ifi_index);
                     li->state = GOT_IP_STATIC;
                 } else
-                    MULTI_DEBUG_PRINT(stderr,"Interface %s (idx %u) has "
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr,"Interface %s (idx %u) has "
                         "already been seen. Ignoring event\n", if_name, 
                         ifi->ifi_index);
                 return;
@@ -415,7 +415,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
                 if(li_static != NULL){
                     if(li_static->proto == PROTO_IGNORE){
-                        MULTI_DEBUG_PRINT(stderr, "Ignoring %s\n", if_name);
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignoring %s\n", if_name);
                         return;
                     } else
                         li = multi_link_create_new_link(if_name, 
@@ -430,14 +430,14 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
                 /* Add as a case here! The check for point to point  */
                 if(li_static != NULL && li_static->proto == PROTO_STATIC){
-					MULTI_DEBUG_PRINT(stderr, "Link %s found in static list\n", 
+					MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s found in static list\n", 
                             if_name);
                     li->state = GOT_IP_STATIC;
 					li->cfg = li_static->cfg_static;
 				} else if (ifi->ifi_type == ARPHRD_PPP){
                     /* PPP will be dealt with separatley, since they get the IP
                      * remotely by themself */
-                    MULTI_DEBUG_PRINT(stderr, "Link %s (%u) is PPP! state "
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s (%u) is PPP! state "
                             "%u %u\n", if_name, ifi->ifi_index, iface_state, 
                             IFF_RUNNING);
                     li->state = LINK_DOWN_PPP;
@@ -446,7 +446,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     if(li->state != GOT_IP_PPP){
                         //Need to treat this in a special way! Remove li, keep
                         //li and have some sort of timeout?
-                        MULTI_DEBUG_PRINT(stderr, "Could not get info for PPP "
+                        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not get info for PPP "
                                 "link %u (first look)!\n", ifi->ifi_index);
                     } else {
                         //Clean the information that is automatically added to
@@ -455,7 +455,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     }
 
                 } else if(wireless_mode){ 
-                    MULTI_DEBUG_PRINT(stderr, "Link %s is wlan access point\n",
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is wlan access point\n",
                             if_name);
                     li->state = LINK_DOWN_AP;
                     multi_link_get_iface_info(li);
@@ -470,7 +470,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                             multi_dhcp_main, (void *) li);
 				}
             } else
-                MULTI_DEBUG_PRINT(stderr, "Limit reached, cannot add more links\n");
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Limit reached, cannot add more links\n");
         } else if(ifi->ifi_flags & IFF_UP){ //Might replace with IF_OPER_DOWN
             //Check if interface has already been seen
             LIST_FIND_CUSTOM(li, &multi_link_links_2, next, &(ifi->ifi_index),
@@ -482,7 +482,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             if(li != NULL){
                 //Need a generic cleanup, move the next "else" into a separate
                 //function
-                MULTI_DEBUG_PRINT(stderr,"Interface %s (idx %u) has already "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Interface %s (idx %u) has already "
                     "been seen as UP, will clean\n", if_name, ifi->ifi_index);
                 multi_link_delete_link(li, probe_pipe);
                 return;
@@ -494,7 +494,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
             if(li_static != NULL && li_static->proto == PROTO_STATIC){
                 //Allocate a new link
-                MULTI_DEBUG_PRINT(stderr, "Link %s is UP\n", if_name);
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is UP\n", if_name);
                 li = multi_link_create_new_link(if_name, li_static->metric);
                 li->state = GOT_IP_STATIC_UP;
                 li->cfg = li_static->cfg_static;
@@ -506,12 +506,12 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
             LIST_FIND_CUSTOM(li, &multi_link_links_2, next, &dev_idx,
                     multi_cmp_ifidx);
 
-            MULTI_DEBUG_PRINT(stderr, "Interface %s (index %u) is down, "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s (index %u) is down, "
                 "length %u\n", if_name, ifi->ifi_index, 
                 multi_link_num_links);
 
             if(li == NULL){
-                MULTI_DEBUG_PRINT(stderr, "Could not find %s (index %u), "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not find %s (index %u), "
                     "length %u\n", if_name, ifi->ifi_index, 
                     multi_link_num_links);
             } else{
@@ -549,7 +549,7 @@ static void multi_link_populate_links_list(){
     rt->rtgen_family = AF_UNSPEC; //I need all interfaces
 
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Cannot request info dump\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request info dump\n");
         return;
     }
 
@@ -596,7 +596,7 @@ static int32_t multi_link_flush_links(){
 
     //Address
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Cannot request address dump\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request address dump\n");
         return EXIT_FAILURE;
     }
 
@@ -605,7 +605,7 @@ static int32_t multi_link_flush_links(){
     //Rules
     nlh->nlmsg_type = RTM_GETRULE;
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Cannot request rules dump\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request rules dump\n");
         return EXIT_FAILURE;
     }
 
@@ -614,7 +614,7 @@ static int32_t multi_link_flush_links(){
     //Routes
     nlh->nlmsg_type = RTM_GETROUTE;
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Cannot request rules dump\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request rules dump\n");
         return EXIT_FAILURE;
     }
 
@@ -645,29 +645,29 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
 
     //NETLINK_ROUTE is where I want to hook into the kernel
     if(!(multi_link_nl_request = mnl_socket_open(NETLINK_ROUTE))){
-        MULTI_DEBUG_PRINT(stderr, "Could not create mnl socket (request)\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create mnl socket (request)\n");
         return EXIT_FAILURE;
     }
 
     if(!(multi_link_nl_set = mnl_socket_open(NETLINK_ROUTE))){
-        MULTI_DEBUG_PRINT(stderr, "Could not create mnl socket (set)\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create mnl socket (set)\n");
         return EXIT_FAILURE;
     }
 
     if(!(multi_link_nl_event = mnl_socket_open(NETLINK_ROUTE))){
-        MULTI_DEBUG_PRINT(stderr, "Could not create mnl socket (event)\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create mnl socket (event)\n");
         return EXIT_FAILURE;
     }
 
     if(mnl_socket_bind(multi_link_nl_request, 0, MNL_SOCKET_AUTOPID) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not bind mnl event socket\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
         mnl_socket_close(multi_link_nl_event);
         mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
     }
 
     if(mnl_socket_bind(multi_link_nl_set, 0, MNL_SOCKET_AUTOPID) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not bind mnl event socket\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
         mnl_socket_close(multi_link_nl_event);
         mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
@@ -675,7 +675,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
 
     if(mnl_socket_bind(multi_link_nl_event, RTMGRP_LINK, MNL_SOCKET_AUTOPID) 
             < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not bind mnl event socket\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
         mnl_socket_close(multi_link_nl_event);
         mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
@@ -683,7 +683,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
 
     if(pipe(multi_link_dhcp_pipes) < 0){
         //perror("Pipe failed\n");
-        MULTI_DEBUG_PRINT(stderr,"Pipe failed\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Pipe failed\n");
         return EXIT_FAILURE;
     }
 
@@ -695,7 +695,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
     //TODO: Give this one a better name since it is not only for PPP any more
     LIST_FOREACH_CB(&multi_link_links_2, next, multi_link_check_ppp, li, NULL);
 
-    MULTI_DEBUG_PRINT(stderr, "Done populating links list!\n");
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Done populating links list!\n");
 
     if(multi_link_flush_links() == EXIT_FAILURE)
         return EXIT_FAILURE;
@@ -709,7 +709,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
                 li = li->next.le_next){
             /* Start DHCP */
             if(li->state == WAITING_FOR_DHCP){
-                MULTI_DEBUG_PRINT(stderr, "Starting DHCP for existing "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Starting DHCP for existing "
                         "interface %s\n", li->dev_name);
                 pthread_create(&(li->dhcp_thread), &detach_attr, 
                         multi_dhcp_main, (void *) li);

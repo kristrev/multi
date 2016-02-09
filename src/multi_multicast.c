@@ -108,9 +108,9 @@ void multi_test_visible_loop(struct multi_config *mc){
     dest_addr.nl_pid = 0; 
     dest_addr.nl_groups = 1;
 
-    MULTI_DEBUG_PRINT(stderr, "Multi manager is ready! Netlink socket %d\n", 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Multi manager is ready! Netlink socket %d\n", 
             netlink_sock);
-    MULTI_DEBUG_PRINT(stderr, "M S\n");
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "M S\n");
 
     //Look at the Wikipedia site for iovec and man(7) netlink for examples on
     //how to properly parse netlink and have multiple iovec-entries
@@ -183,7 +183,7 @@ void multi_test_visible_loop(struct multi_config *mc){
                 iov.iov_base = (void *) ni->nlmsg;
                 iov.iov_len = ni->nlmsg->nlmsg_len;
                 retval = sendmsg(netlink_sock, &msg, 0);
-                MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about an UP "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Broadcasted %d bytes about an UP "
                         "change in network state\n", retval);
             } else {
                 if(ni){
@@ -193,7 +193,7 @@ void multi_test_visible_loop(struct multi_config *mc){
                     iov.iov_base = (void *) ni->nlmsg;
                     iov.iov_len = ni->nlmsg->nlmsg_len;
                     retval = sendmsg(netlink_sock, &msg, 0);
-                    MULTI_DEBUG_PRINT(stderr,"Broadcasted %d bytes about a "
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr,"Broadcasted %d bytes about a "
                             "DOWN change in network state\n", retval);
                     
                     LIST_REMOVE(ni, next);

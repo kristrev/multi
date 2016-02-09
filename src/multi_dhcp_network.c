@@ -68,7 +68,7 @@ static uint16_t multi_dhcp_in_cksum(const uint16_t *addr, register int len,
 
 void multi_dhcp_notify_link_module(int32_t pipe_fd){
     if(write(pipe_fd, "a", 1) < 0){
-        MULTI_DEBUG_PRINT(stderr, "Could not notify link module\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not notify link module\n");
     }
 }
 
@@ -175,7 +175,7 @@ int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di,
         return -1;
 
     if(ntohs(addr.sll_protocol) == ETH_P_ARP){
-        MULTI_DEBUG_PRINT(stderr,"Got an ARP-message\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Got an ARP-message\n");
         return -1;
     }
 
@@ -205,7 +205,7 @@ int32_t multi_dhcp_recv_msg(struct multi_dhcp_info *di,
 
     /* No DHCP */
     if(memcmp(&(dhcp_msg->options), multi_dhcp_vendcookie, 4)){
-        MULTI_DEBUG_PRINT(stderr,"Vendor cookie was not equal, this is not a" 
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Vendor cookie was not equal, this is not a" 
                 "valid DHCP packet\n"); 
         return -1;
     }
@@ -237,7 +237,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
      * used and the L2-header is removed by kernel (man 7 packet). */
     if((sockfd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) == -1){
         //perror("Error creating raw socket:");
-        MULTI_DEBUG_PRINT(stderr,"Error creating raw socket.\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Error creating raw socket.\n");
         return -1;
     }
 
@@ -245,7 +245,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
      * chaddr-field of every DHCP packet */
     if(ioctl(sockfd, SIOCGIFHWADDR, &ifq) == -1){
         //perror("Could not get info on interface");
-        MULTI_DEBUG_PRINT(stderr,"Could not get info on interface\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not get info on interface\n");
         close(sockfd);
         return -1;
     }
@@ -281,7 +281,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
 
     if(setsockopt(sockfd, SOL_SOCKET, SO_ATTACH_FILTER, &only_dhcp_prog, 
                 sizeof(only_dhcp_prog)) == -1){
-        MULTI_DEBUG_PRINT(stderr, "Could not attach netlink filter\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not attach netlink filter\n");
         perror("Msg: ");
         close(sockfd);
         return -1;
@@ -299,7 +299,7 @@ int32_t multi_dhcp_create_raw_socket(struct multi_link_info *li,
 
     if(bind(sockfd, (struct sockaddr *) &sll, sizeof(sll)) == -1){
         close(sockfd);
-        MULTI_DEBUG_PRINT(stderr,"Could not bind socket\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not bind socket\n");
         return -1;
     }
 
@@ -314,19 +314,19 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == -1){ 
         //perror("Could not establish UDP socket");
-        MULTI_DEBUG_PRINT(stderr,"Could not establish UDP socket\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not establish UDP socket\n");
         return -1;
     }
 
     if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &i, sizeof(i))){
         //perror("Could not set UDP socket to broadcast");
-        MULTI_DEBUG_PRINT(stderr,"Could not set UDP socket to broadcast\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not set UDP socket to broadcast\n");
         return -1;
     }
 
     if(setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, li->dev_name, 
                 strlen((char*) li->dev_name) + 1) < 0){
-        MULTI_DEBUG_PRINT(stderr,"Could not bind sock to interface %s "
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not bind sock to interface %s "
                 "(idx %u)\n", li->dev_name, li->ifi_idx);
         return -1;
     }
@@ -338,13 +338,13 @@ int multi_dhcp_create_udp_socket(struct multi_link_info *li) {
     if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr))){
         close(sock);
         //perror("Could not bind socket to port");
-        MULTI_DEBUG_PRINT(stderr,"Could not bind socket to port for interface "
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not bind socket to port for interface "
                 "%s (idx %u) Error: %s\n", li->dev_name, li->ifi_idx, strerror(errno));
         return -1;
     }
 
     if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &i, sizeof(i)) < 0)
-        MULTI_DEBUG_PRINT(stderr,"Could not set SO_REUSEADDR on socket %d for "
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Could not set SO_REUSEADDR on socket %d for "
                 "interface %s (idx %u)\n", sock, li->dev_name, li->ifi_idx);
 
     return sock;

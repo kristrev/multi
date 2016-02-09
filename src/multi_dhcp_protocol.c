@@ -162,7 +162,7 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
                 di->req_sent_time = t_now;
 
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
-            MULTI_DEBUG_PRINT(stderr,"Sending DHCP DISCOVER (iface idx %u).\n", 
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"Sending DHCP DISCOVER (iface idx %u).\n", 
                     di->ifidx);
             di->output_timer = 1;
             break;
@@ -184,7 +184,7 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
 
             inet_ntop(AF_INET, &di->cfg.address, (char*) ip_addr, INET_ADDRSTRLEN);
-            MULTI_DEBUG_PRINT(stderr,"REBOOTING and requesting %s, Sending "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"REBOOTING and requesting %s, Sending "
                     "DHCP REQUEST (iface idx %u).\n", ip_addr, di->ifidx);
             di->output_timer = 1;
             break;
@@ -200,7 +200,7 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
        
             //Not updating req_sent_time, as this is just a step in a request
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
-            MULTI_DEBUG_PRINT(stderr,"Sending DHCP REQUEST (iface idx %u).\n", 
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"Sending DHCP REQUEST (iface idx %u).\n", 
                     di->ifidx);
             di->output_timer = 1;
             break;
@@ -219,7 +219,7 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
                 di->req_sent_time = t_now;
 
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
-            MULTI_DEBUG_PRINT(stderr,"RENEWING, sending DHCP REQUEST (iface "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"RENEWING, sending DHCP REQUEST (iface "
                     "idx %u).\n", di->ifidx);
             di->output_timer = 1;
             break;
@@ -233,7 +233,7 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
             dhcp_msg.ciaddr = di->cfg.address.s_addr;
 
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
-            MULTI_DEBUG_PRINT(stderr,"REBINDING, sending DHCP REQUEST "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"REBINDING, sending DHCP REQUEST "
                     "(iface idx %u).\n", di->ifidx);
             di->output_timer = 1;
             break;
@@ -398,7 +398,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
             //One typical scenario here is if the lease expires before the 
             //DHCP ACK for final REBIND is received
             if(cfg.dhcpmsgtype != DHCP_TYPE_OFFER){ 
-                MULTI_DEBUG_PRINT(stderr,"Mismatch state. In INIT but did not "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Mismatch state. In INIT but did not "
                         "get OFFER. Got %u\n", cfg.dhcpmsgtype);
                 return;
             }
@@ -406,7 +406,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
             /* Move on to the next state, retrans count must be reset */
             di->retrans_count = 0;
 
-            MULTI_DEBUG_PRINT(stderr,"Received DHCP OFFER on interface %s "
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"Received DHCP OFFER on interface %s "
                     "(iface idx %u), will send DHCP REQUEST\n", li->dev_name, 
                     li->ifi_idx);
 
@@ -423,7 +423,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
                 /* According to the RFC, a NAK involves moving straight back to
                  * INIT and resending request. Moving to INIT implies resetting
                  * variables and state, just in case */
-                MULTI_DEBUG_PRINT(stderr,"Got NAK in state %u. Resetting and "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Got NAK in state %u. Resetting and "
                         "retrying DISCOVER! (iface idx %u)\n", di->state, 
                         di->ifidx);
                 di->state = INIT;
@@ -453,7 +453,7 @@ void multi_dhcp_parse_dhcp_msg(struct multi_dhcp_info *di,
                 
                 //Do the timeout calculation. Be warned that inet_ntoa is NOT
                     //reentrant. In other words, the IP adresses are wrong!
-                MULTI_DEBUG_PRINT(stderr,"Got DHCP ACK on interface %s "
+                MULTI_DEBUG_PRINT_SYSLOG(stderr,"Got DHCP ACK on interface %s "
                         "(iface idx %u). %s will be bound to IP: %s Broadcast: "
                         "%s Gateway: %s Netmask %s (%u) Lease: %u T1: %u T2: "
                         "%u\n", li->dev_name, li->ifi_idx, li->dev_name, 
