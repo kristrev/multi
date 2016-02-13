@@ -171,12 +171,22 @@ int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data){
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct filter_msg *msg;
     struct multi_link_info *li = NULL;
+    struct multi_link_info_static *li_static = NULL;
+    char devname[IF_NAMESIZE+1] = {0};
+
+    if (if_indextoname(ifa->ifa_index, devname))
+        TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links, list_ptr,
+                devname, multi_cmp_devname);
+
+    if (li_static && li_static->proto == PROTO_IGNORE)
+        return MNL_CB_OK;
 
     //The reason I need to check in multi_link_links is interfaces that are
     //ignored, or that have come up after I dumped the interface info. The first
     //case interfaces should be ignored, while the second case interfaces will
     //be seen later
     LIST_FIND_CUSTOM(li, &multi_link_links_2, next, ifa, multi_cmp_ifidx_flush);
+
     if(li){
         //Copy the nlmsg, as I will recycle it later when I delete everything!
         msg = (struct filter_msg*) malloc(nlh->nlmsg_len + 
@@ -319,7 +329,9 @@ int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     //the local table and the kernel did not know what to do! The IP and,
     //thereby, implicitly the local table is managed by removing/adding IP
     //adresses.
-    if(table_i->rtm_table == 255)
+    //Also, multi will only use tables 1-32, so stay away from tables other than
+    //those (now that we anyway dont add routes to default table)
+    if(table_i->rtm_table == 255 || table_i->rtm_table > MAX_NUM_LINKS)
         return MNL_CB_OK;
 
     mnl_attr_parse(nlh, sizeof(*table_i), multi_link_fill_rtattr, tb);
