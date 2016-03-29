@@ -136,7 +136,7 @@ void multi_test_visible_loop(struct multi_config *mc){
         //Repeat every UP message
         if(retval == 0){
             for(ni = iface_list.lh_first; ni != NULL; ni = ni->next.le_next){
-                printf("Hei\n");
+                MULTI_DEBUG_PRINT(stderr, "Hei\n");
                 iov.iov_base = (void *) ni->nlmsg;
                 iov.iov_len = ni->nlmsg->nlmsg_len;
                 sendmsg(netlink_sock, &msg, 0);
