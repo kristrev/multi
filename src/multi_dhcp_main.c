@@ -222,7 +222,7 @@ static void multi_dhcp_cleanup(void *arg){
 	if(di->udp_sock > 0)
 	    close(di->udp_sock);
 
-    MULTI_DEBUG_PRINT_SYSLOG(stderr,"Finished DHCP cleanup for interface with index" 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr,"Finished DHCP cleanup for interface with index " 
             "%u. Sent RELEASE and closed sockets %u and %u.\n", di->ifidx, 
             di->raw_sock, di->udp_sock);
 }

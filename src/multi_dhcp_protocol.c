@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <pthread.h>
+#include <limits.h>
 
 extern int32_t multi_dhcp_snd_msg_raw(int sock, struct in_addr from_ip, 
         int from_if, struct multi_dhcp_message *msg, uint8_t broadcast);
@@ -131,6 +132,28 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
     //uint32_t lease_time = htonl(60);
     uint32_t t_now;
     uint8_t ip_addr[INET_ADDRSTRLEN];
+    FILE *hostname_file;
+    uint8_t hostname[HOST_NAME_MAX + 1] = {0};
+    char *hostname_parsed = NULL;
+    size_t retval;
+
+    //Read hostname, we don't care if we fail (most important is to get lease)
+    hostname_file = fopen("/etc/hostname", "r");
+
+    if (hostname_file != NULL) {
+        retval = fread(hostname, 1, HOST_NAME_MAX, hostname_file);
+
+        if (ferror(hostname_file)) {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"Failed to read hostname\n");
+        } else {
+            hostname_parsed = strtok(hostname, "\r\n");
+            MULTI_DEBUG_PRINT_SYSLOG(stderr,"Hostname: %s\n", hostname_parsed);
+        }
+
+        fclose(hostname_file); 
+    } else {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr,"Failed to open hostname file\n");
+    }
 
     multi_dhcp_dm_init(&dhcp_msg);
     //Unique ID to separate DHCP requests from one another
@@ -156,7 +179,10 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
             ipaddr.s_addr = 0;
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_TYPE, 1, 
                     &dhcp_type);
-           
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
+
             /* According to RFC, it is time of ORIGINAL request */
             if(di->req_sent_time == 0)
                 di->req_sent_time = t_now;
@@ -175,6 +201,9 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
                     &dhcp_type);
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_REQADDR, 4, 
                     &di->cfg.address.s_addr);
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
 
             /* As always, this is a NEW request so time will be set for the 
              * first packet */
@@ -197,7 +226,10 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
                     &di->cfg.address.s_addr);
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_SERVER, 4, 
                     &di->cfg.dhcpd_addr.s_addr);
-       
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
+      
             //Not updating req_sent_time, as this is just a step in a request
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
             MULTI_DEBUG_PRINT_SYSLOG(stderr,"Sending DHCP REQUEST (iface idx %u).\n", 
@@ -211,6 +243,9 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
             dhcp_type = DHCP_TYPE_REQUEST;
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_TYPE, 1, 
                     &dhcp_type);
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
             dhcp_msg.ciaddr = di->cfg.address.s_addr;
 
             /* As always, this is a NEW request so time will be set for the 
@@ -230,6 +265,9 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
             dhcp_type = DHCP_TYPE_REQUEST;
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_TYPE, 1, 
                     &dhcp_type);
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
             dhcp_msg.ciaddr = di->cfg.address.s_addr;
 
             di->req_retrans = t_now + (4 * (di->retrans_count + 1));
@@ -243,6 +281,9 @@ void multi_dhcp_create_dhcp_msg(struct multi_dhcp_info *di){
                     &dhcp_type);
             multi_dhcp_dm_add_option(&dhcp_msg, DHCP_OPTION_REQADDR, 4, 
                     &di->cfg.address.s_addr);
+            if (hostname_parsed)
+                multi_dhcp_dm_add_option(&dhcp_msg, BOOTP_OPTION_HOSTNAME,
+                        strlen(hostname_parsed), hostname_parsed);
 
             //According to the RFC, move back to init
             //di->state = INIT;
