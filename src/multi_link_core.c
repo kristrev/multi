@@ -345,7 +345,6 @@ static void multi_link_delete_link(struct multi_link_info *li,
 
 static void multi_link_modify_link(const struct nlmsghdr *nlh, 
         uint32_t probe_pipe, uint8_t unique){
-    uint8_t if_name[IFNAMSIZ];
     struct ifinfomsg *ifi = mnl_nlmsg_get_payload(nlh);
     struct nlattr *tb[IFLA_MAX + 1] = {};
     uint8_t iface_state = 0;
@@ -353,27 +352,22 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 	struct multi_link_info_static *li_static = NULL;
     pthread_attr_t detach_attr;
     uint8_t wireless_mode = 0;
+    uint8_t *if_name;
 
-    memset(if_name, 0, IFNAMSIZ);
+    mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
-    /* Tunneling interfaces have no ARP header, so they can be ignored. 
-     * See linux/if_arp.h for different definitions */
-    if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
-        if_indextoname(ifi->ifi_index, (char*) if_name);
-        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface has no ARP header, most likely a "
-                "tunnel, ignoring (%s)\n", if_name);
+    if (!tb[IFLA_IFNAME]) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Missing interface name\n");
         return;
     }
 
-    if_indextoname(ifi->ifi_index, (char*) if_name);
+    if_name = (uint8_t*) mnl_attr_get_str(tb[IFLA_IFNAME]);
 
-    if(if_name[0] > 0 && strstr((char*) if_name, "ifb")){
-		MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s is incoming, ignoring\n", 
-                if_name);
-		return;
-	}
-
-    mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
+    if (ifi->ifi_type == ARPHRD_VOID ||
+        (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
+        ifi->ifi_type == ARPHRD_TUNNEL ||
+        ifi->ifi_flags & IFF_LOOPBACK)
+        return;
 
     if(tb[IFLA_OPERSTATE]){
         iface_state = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
