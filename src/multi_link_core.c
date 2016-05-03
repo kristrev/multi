@@ -358,12 +358,12 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
     /* Tunneling interfaces have no ARP header, so they can be ignored. 
      * See linux/if_arp.h for different definitions */
-    if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
+    /*if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE){
         if_indextoname(ifi->ifi_index, (char*) if_name);
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface has no ARP header, most likely a "
                 "tunnel, ignoring (%s)\n", if_name);
         return;
-    }
+    }*/
 
     if_indextoname(ifi->ifi_index, (char*) if_name);
 
