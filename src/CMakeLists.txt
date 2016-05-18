@@ -69,6 +69,8 @@ if (INIT_DAEMON STREQUAL "systemd")
     install(FILES ${PROJECT_SOURCE_DIR}/files/systemd/multi.service DESTINATION
            /lib/systemd/system/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
            RENAME multi.service)
+    install(FILES ${PROJECT_SOURCE_DIR}/files/multi.yml DESTINATION
+           /etc/multi.yml PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 elseif(INIT_DAEMON STREQUAL "upstart")
     install(FILES ${PROJECT_SOURCE_DIR}/files/upstart/multi.conf DESTINATION
             /etc/init/ PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ

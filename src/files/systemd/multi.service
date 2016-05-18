@@ -3,7 +3,7 @@ Description=Multi network manager
 After=network.target
 
 [Service]
-ExecStart=/usr/local/sbin/multi_client -d
+ExecStart=/usr/local/sbin/multi_client -d -c /etc/multi.yml
 Type=forking
 Restart=on-failure
 
