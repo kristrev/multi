@@ -363,7 +363,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
     if_name = (uint8_t*) mnl_attr_get_str(tb[IFLA_IFNAME]);
 
-    if (ifi->ifi_type == ARPHRD_VOID ||
+    if (strncmp(if_name, "veth", 4) ||
+        ifi->ifi_type == ARPHRD_VOID ||
         (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
         ifi->ifi_flags & IFF_LOOPBACK)
