@@ -519,7 +519,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 static int32_t multi_link_parse_netlink(const struct nlmsghdr *nlh, void *data){
     struct multi_config *mc = (struct multi_config*) data;
 
-    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parse netlink\n"); 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parse netlink %u\n", nlh->nlmsg_type); 
 
     if(nlh->nlmsg_type == RTM_NEWLINK || nlh->nlmsg_type == RTM_DELLINK)
         multi_link_modify_link(nlh, mc->socket_pipe[1], mc->unique);
