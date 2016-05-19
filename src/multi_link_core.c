@@ -519,6 +519,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 static int32_t multi_link_parse_netlink(const struct nlmsghdr *nlh, void *data){
     struct multi_config *mc = (struct multi_config*) data;
 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parse netlink\n"); 
+
     if(nlh->nlmsg_type == RTM_NEWLINK || nlh->nlmsg_type == RTM_DELLINK)
         multi_link_modify_link(nlh, mc->socket_pipe[1], mc->unique);
 
@@ -752,20 +754,22 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
         //message
         for(i=0; i<=fdmax; i++){
             if(FD_ISSET(i, &readfds)){
-                if(i == mnl_sock_event){
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Got netlink message\n");
+                if (i == mnl_sock_event){
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Got netlink event\n");
                     numbytes = mnl_socket_recvfrom(multi_link_nl_event, 
                             mnl_buf, sizeof(mnl_buf));
                     mnl_cb_run(mnl_buf, numbytes, 0, 0, 
                             multi_link_parse_netlink, mc);
                     LIST_FOREACH_CB(&multi_link_links_2, next,
                             multi_link_check_link, li, mc);
-                } else if(i == mnl_sock_set){
+                } else if (i == mnl_sock_set){
                     numbytes = mnl_socket_recvfrom(multi_link_nl_set, mnl_buf, 
                             sizeof(mnl_buf));
-                } else if(i == mnl_sock_get){
+                } else if (i == mnl_sock_get){
                     numbytes = mnl_socket_recvfrom(multi_link_nl_request, 
                             mnl_buf, sizeof(mnl_buf));
-                } else if(i == multi_link_dhcp_pipes[0]){
+                } else if (i == multi_link_dhcp_pipes[0]){
                     numbytes = read(i, buf, MAX_PIPE_MSG_LEN);
                     LIST_FOREACH_CB(&multi_link_links_2, next,
                             multi_link_check_link, li, mc);
