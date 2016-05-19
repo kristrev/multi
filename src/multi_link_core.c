@@ -363,16 +363,12 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
     if_name = (uint8_t*) mnl_attr_get_str(tb[IFLA_IFNAME]);
 
-    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will modify link %s\n", if_name);
-
     if (!strncmp(if_name, "veth", 4) ||
         ifi->ifi_type == ARPHRD_VOID ||
         (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
-        ifi->ifi_flags & IFF_LOOPBACK) {
-        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Return based on ifi type (%u)\n", ifi->ifi_type);
+        ifi->ifi_flags & IFF_LOOPBACK)
         return;
-    }
 
     if(tb[IFLA_OPERSTATE]){
         iface_state = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
@@ -522,8 +518,6 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
 static int32_t multi_link_parse_netlink(const struct nlmsghdr *nlh, void *data){
     struct multi_config *mc = (struct multi_config*) data;
-
-    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Parse netlink %u\n", nlh->nlmsg_type); 
 
     if(nlh->nlmsg_type == RTM_NEWLINK || nlh->nlmsg_type == RTM_DELLINK)
         multi_link_modify_link(nlh, mc->socket_pipe[1], mc->unique);
@@ -758,9 +752,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
         //message
         for(i=0; i<=fdmax; i++){
             if(FD_ISSET(i, &readfds)){
-                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Got netlink message\n");
                 if (i == mnl_sock_event){
-                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Got netlink event\n");
                     numbytes = mnl_socket_recvfrom(multi_link_nl_event, 
                             mnl_buf, sizeof(mnl_buf));
                     mnl_cb_run(mnl_buf, numbytes, 0, 0, 
