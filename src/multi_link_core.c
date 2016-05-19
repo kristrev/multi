@@ -354,6 +354,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     uint8_t wireless_mode = 0;
     uint8_t *if_name;
 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will modify link\n");
+
     mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
     if (!tb[IFLA_IFNAME]) {
@@ -367,8 +369,10 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
         ifi->ifi_type == ARPHRD_VOID ||
         (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
-        ifi->ifi_flags & IFF_LOOPBACK)
+        ifi->ifi_flags & IFF_LOOPBACK) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Return based on ifi type\n");
         return;
+    }
 
     if(tb[IFLA_OPERSTATE]){
         iface_state = mnl_attr_get_u8(tb[IFLA_OPERSTATE]);
