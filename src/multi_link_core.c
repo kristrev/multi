@@ -370,7 +370,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
         (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
         ifi->ifi_flags & IFF_LOOPBACK) {
-        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Return based on ifi type\n");
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Return based on ifi type (%u)\n", ifi->ifi_type);
         return;
     }
 
