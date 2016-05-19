@@ -354,8 +354,6 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     uint8_t wireless_mode = 0;
     uint8_t *if_name;
 
-    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will modify link\n");
-
     mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
     if (!tb[IFLA_IFNAME]) {
@@ -364,6 +362,8 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
     }
 
     if_name = (uint8_t*) mnl_attr_get_str(tb[IFLA_IFNAME]);
+
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will modify link %s\n", if_name);
 
     if (strncmp(if_name, "veth", 4) ||
         ifi->ifi_type == ARPHRD_VOID ||
