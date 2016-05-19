@@ -674,7 +674,7 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
         return EXIT_FAILURE;
     }
 
-    if(mnl_socket_bind(multi_link_nl_event, RTMGRP_LINK, MNL_SOCKET_AUTOPID) 
+    if(mnl_socket_bind(multi_link_nl_event, 1 << (RTNLGRP_LINK - 1), MNL_SOCKET_AUTOPID) 
             < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
         mnl_socket_close(multi_link_nl_event);
