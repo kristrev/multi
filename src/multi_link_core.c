@@ -365,7 +365,7 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
 
     MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will modify link %s\n", if_name);
 
-    if (strncmp(if_name, "veth", 4) ||
+    if (!strncmp(if_name, "veth", 4) ||
         ifi->ifi_type == ARPHRD_VOID ||
         (ifi->ifi_type == ARPHRD_NONE && strncmp(if_name,"wwan", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
