@@ -79,19 +79,27 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     //nlattr is the generic form of rtattr
     struct nlattr *tb[IFLA_MAX + 1] = {};
     struct ifinfomsg *ifi = mnl_nlmsg_get_payload(nlh);
-    uint8_t devname[IFNAMSIZ];
+    uint8_t *devname;
     struct multi_link_info *li;
 	struct multi_link_info_static *li_static = NULL;
     uint8_t wireless_mode = 0;
 
-    /* Tunneling interfaces have no ARP header, so they can be ignored, 
-     * as well as loopback. See linux/if_arp.h for different definitions */
-    if(ifi->ifi_type == ARPHRD_VOID || ifi->ifi_type == ARPHRD_NONE || 
-            ifi->ifi_flags & IFF_LOOPBACK)
-        return MNL_CB_OK;
+    mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
-    //Check for WLAN
-    if_indextoname(ifi->ifi_index, (char*) devname);
+    if (!tb[IFLA_IFNAME]) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Missing interface name\n");
+        return MNL_CB_OK;
+    }
+
+    devname = (uint8_t*) mnl_attr_get_str(tb[IFLA_IFNAME]);
+
+    if (!strncmp(devname, "veth", 4) ||
+        !strncmp(devname, "ifb", 3) ||
+        ifi->ifi_type == ARPHRD_VOID ||
+        (ifi->ifi_type == ARPHRD_NONE && strncmp(devname, "wwan", 4)) ||
+        ifi->ifi_type == ARPHRD_TUNNEL ||
+        ifi->ifi_flags & IFF_LOOPBACK)
+        return MNL_CB_OK;
 
     if((wireless_mode = multi_link_check_wlan_mode(devname)))
         if(wireless_mode == 6){
@@ -99,12 +107,6 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
                     "ignoring\n", devname);
             return MNL_CB_OK;
         }
-
-    //Ignore incoming interfaces too
-    if(strstr((char*) devname, "ifb"))
-        return MNL_CB_OK;
-
-    mnl_attr_parse(nlh, sizeof(*ifi), multi_link_fill_rtattr, tb);
 
     if(tb[IFLA_OPERSTATE]){
         //Interface is up, do normal operation
