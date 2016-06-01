@@ -207,6 +207,7 @@ void multi_test_visible_loop(struct multi_config *mc){
 int main(int argc, char *argv[]){
     int32_t c;
     char *conf_file = NULL;
+    char *log_file  = NULL;
     struct multi_config *mc = NULL; //Do NOT free this struct
     uint8_t daemon_mode = 0;
     uint8_t unique_mode = 0;
@@ -219,10 +220,13 @@ int main(int argc, char *argv[]){
     /* Supress any error-messages from getopt */
     opterr = 0;
 
-    while((c = getopt(argc, argv, "c:du")) != -1){
+    while((c = getopt(argc, argv, "c:l:du")) != -1){
         switch(c){
             case 'c':
                 conf_file = optarg;
+                break;
+            case 'l':
+                log_file = optarg;
                 break;
             case'd':
                 daemon_mode = 1;
@@ -246,7 +250,11 @@ int main(int argc, char *argv[]){
             exit(EXIT_FAILURE);
         }
 
-        if(freopen("/var/log/multi.log", "a", stderr) == NULL){
+        if (log_file == NULL) {
+            log_file = "/var/log/multi.log";
+        }
+
+        if(freopen(log_file, "a", stderr) == NULL){
             perror("freopen failed: ");
             exit(EXIT_FAILURE);
         } 
