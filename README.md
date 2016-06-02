@@ -7,7 +7,8 @@ new network interfaces, acquires an IP (using for example DHCP or read from
 config file) and configures the routing table(s) accordingly, using
 Netlink/RTNetlink-messages.  MNM supports the following command line options:
 
-* -d : Run MNM as daemon. Log-messages are written to /var/log/multi.log.
+* -d : Run MNM as daemon. Logs messages to the log file locatin (see below).
+* -l : Log file location, defaults to /var/log/multi.log
 * -u : Ensure that each interface is assigned a unique IP. Use this one with
   care, as DHCP has no way to gracefully reject an IP address. Instead, DHCP
   DECLINE is used, which causes DHCP servers to blacklist IP addresses.
