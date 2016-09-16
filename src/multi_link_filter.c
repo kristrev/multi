@@ -324,12 +324,12 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
     struct nlattr *tb[FRA_MAX + 1] = {};
     char *iface_name = NULL;
     struct filter_msg *msg;
-    uint32_t rule_addr;
-    struct multi_link_info *li = ip_info->data;
+    uint32_t target_table, rule_addr;
+    struct multi_link_info *li = ip_info->data, *li_itr;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
-    if (!tb[FRA_PRIORITY])
+    if (!tb[FRA_PRIORITY] || !tb[FRA_TABLE])
         return MNL_CB_OK;
 
     if ((!tb[FRA_SRC] && !tb[FRA_DST]) || (tb[FRA_SRC] && tb[FRA_DST]))
@@ -337,10 +337,24 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
 
     if (tb[FRA_SRC])
         rule_addr = mnl_attr_get_u32(tb[FRA_SRC]);
-    else
+    else if(tb[FRA_DST])
         rule_addr = mnl_attr_get_u32(tb[FRA_DST]);
 
     if (rule_addr != li->cfg.address.s_addr)
+        return MNL_CB_OK;
+
+    target_table = mnl_attr_get_u32(tb[FRA_TABLE]);
+
+    //Need to check if there exists an interface with this IP using this table
+    for (li_itr = multi_link_links_2.lh_first; li_itr != NULL; ){
+        if (li_itr->cfg.address.s_addr == rule_addr &&
+            li_itr->metric == target_table)
+            break;
+
+        li_itr = li_itr->next.le_next;
+    }
+
+    if (li_itr != NULL)
         return MNL_CB_OK;
 
     //Add check for other IPs

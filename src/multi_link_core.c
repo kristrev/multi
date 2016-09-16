@@ -193,6 +193,8 @@ static int32_t multi_link_rules_sanity(struct multi_link_info *li)
     rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
     rt->rtgen_family = AF_INET; //Multi only supports v4
 
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will check for dirty rules\n");
+
     if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request rules dump\n");
         return EXIT_FAILURE;
