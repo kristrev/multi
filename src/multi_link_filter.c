@@ -347,15 +347,19 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
 
     //Need to check if there exists an interface with this IP using this table
     for (li_itr = multi_link_links_2.lh_first; li_itr != NULL; ){
-        if (li_itr->cfg.address.s_addr == rule_addr &&
+        if (li != li_itr &&
+            li_itr->cfg.address.s_addr == rule_addr &&
             li_itr->metric == target_table)
             break;
 
         li_itr = li_itr->next.le_next;
     }
 
-    if (li_itr != NULL)
+    if (li_itr != NULL) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignore (sanity) rule pref %u table %u\n",
+                mnl_attr_get_u32(tb[FRA_PRIORITY]), target_table);
         return MNL_CB_OK;
+    }
 
     //Add check for other IPs
     msg = (struct filter_msg*) malloc(nlh->nlmsg_len +
