@@ -324,12 +324,17 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
     struct nlattr *tb[FRA_MAX + 1] = {};
     char *iface_name = NULL;
     struct filter_msg *msg;
-    uint32_t target_table, rule_addr;
+    uint32_t target_table, rule_addr, prio;
     struct multi_link_info *li = ip_info->data, *li_itr;
 
     mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
 
     if (!tb[FRA_PRIORITY] || !tb[FRA_TABLE])
+        return MNL_CB_OK;
+
+    prio = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+
+    if (prio != ADDR_RULE_PRIO && prio != NW_RULE_PRIO)
         return MNL_CB_OK;
 
     if ((!tb[FRA_SRC] && !tb[FRA_DST]) || (tb[FRA_SRC] && tb[FRA_DST]))
