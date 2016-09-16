@@ -324,7 +324,7 @@ void multi_link_remove_link(struct multi_link_info *li){
             li, 32 - (ffs(ntohl(li->cfg.netmask.s_addr)) - 1), FRA_DST,
             NW_RULE_PRIO, NULL);
     multi_link_modify_rule(RTM_DELRULE, NLM_F_CREATE | NLM_F_EXCL, li->metric, 
-            li, 0, 0, DEF_RULE_PRIO + li->ifi_idx, "lo");
+            li, 0, 0, DEF_RULE_PRIO + li->metric, "lo");
 
     /* This seems to be done by the kernel, but does it depend on something or not? Maybe have a check here */
     if(li->state != GOT_IP_AP)
