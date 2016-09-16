@@ -310,7 +310,7 @@ void multi_link_configure_link(struct multi_link_info *li){
             li, 32 - (ffs(ntohl(li->cfg.netmask.s_addr)) - 1), FRA_DST,
             NW_RULE_PRIO, NULL);
     multi_link_modify_rule(RTM_NEWRULE, NLM_F_CREATE | NLM_F_EXCL, li->metric, 
-            li, 0, 0, DEF_RULE_PRIO + li->ifi_idx, "lo");
+            li, 0, 0, DEF_RULE_PRIO + li->metric, "lo");
 
     MULTI_DEBUG_PRINT_SYSLOG(stderr, "Done adding rule (iface %s idx %u)\n", 
             li->dev_name, li->ifi_idx);

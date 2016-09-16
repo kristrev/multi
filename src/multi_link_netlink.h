@@ -21,7 +21,7 @@
 
 #define ADDR_RULE_PRIO  10000
 #define NW_RULE_PRIO    20000
-#define DEF_RULE_PRIO   90000
+#define DEF_RULE_PRIO   91000
 
 /* Configure IP + routes + rule */
 void multi_link_configure_link(struct multi_link_info *li);
