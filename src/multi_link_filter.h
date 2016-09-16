@@ -37,6 +37,7 @@ struct ip_info{
     struct filter_list ip_addr_n; //The nlmsgs, will be used to delete ip addresses
     struct filter_list ip_rules_n; //The netlink messages containing the rules
     struct filter_list ip_routes_n; //The table ID
+    void *data; //Pointer that can be used to store private data
 };
 
 //Helper function for filling in rtattr
@@ -45,6 +46,7 @@ uint8_t multi_link_check_wlan_mode(uint8_t *dev_name);
 int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data);
 int32_t multi_link_filter_ipaddr(const struct nlmsghdr *nlh, void *data);
 int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data);
+int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data);
 int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *arg);
 int32_t multi_link_filter_ppp(const struct nlmsghdr *nlh, void *data);
 int32_t multi_link_filter_ap(const struct nlmsghdr *nlh, void *data);

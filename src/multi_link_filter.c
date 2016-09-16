@@ -318,6 +318,70 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
     return MNL_CB_OK;
 }
 
+//Create a list of rules matching the given source address
+int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
+{
+    struct ip_info *ip_info = (struct ip_info *) data;
+    struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
+    struct nlattr *tb[FRA_MAX + 1] = {};
+    char *iface_name = NULL;
+    struct filter_msg *msg;
+    uint32_t target_table, rule_addr, prio;
+    struct multi_link_info *li = ip_info->data, *li_itr;
+
+    mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
+
+    if (!tb[FRA_PRIORITY] || !tb[FRA_TABLE])
+        return MNL_CB_OK;
+
+    prio = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+
+    if (prio != ADDR_RULE_PRIO && prio != NW_RULE_PRIO)
+        return MNL_CB_OK;
+
+    if ((!tb[FRA_SRC] && !tb[FRA_DST]) || (tb[FRA_SRC] && tb[FRA_DST]))
+        return MNL_CB_OK;
+
+    if (tb[FRA_SRC])
+        rule_addr = mnl_attr_get_u32(tb[FRA_SRC]);
+    else if(tb[FRA_DST])
+        rule_addr = mnl_attr_get_u32(tb[FRA_DST]);
+
+    if (rule_addr != li->cfg.address.s_addr)
+        return MNL_CB_OK;
+
+    target_table = mnl_attr_get_u32(tb[FRA_TABLE]);
+
+    //Need to check if there exists an interface with this IP using this table
+    for (li_itr = multi_link_links_2.lh_first; li_itr != NULL; ){
+        if (li != li_itr &&
+            li_itr->cfg.address.s_addr == rule_addr &&
+            li_itr->metric == target_table)
+            break;
+
+        li_itr = li_itr->next.le_next;
+    }
+
+    if (li_itr != NULL) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignore (sanity) rule pref %u table %u\n",
+                mnl_attr_get_u32(tb[FRA_PRIORITY]), target_table);
+        return MNL_CB_OK;
+    }
+
+    //Add check for other IPs
+    msg = (struct filter_msg*) malloc(nlh->nlmsg_len +
+            sizeof(TAILQ_ENTRY(filter_msg)));
+
+    if (msg == NULL) {
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Can't allocate memory for rule message\n");
+        return MNL_CB_ERROR;
+    }
+
+    memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
+    TAILQ_INSERT_TAIL(&(ip_info->ip_rules_n), msg, list_ptr);
+    return MNL_CB_OK;
+}
+
 int32_t multi_link_filter_iproutes(const struct nlmsghdr *nlh, void *data){
     struct ip_info *ip_info = (struct ip_info *) data;
     struct rtmsg *table_i = mnl_nlmsg_get_payload(nlh);

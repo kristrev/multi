@@ -80,6 +80,8 @@ extern void multi_link_free_ip_info(struct ip_info *ip_info);
 //multi_dhcp_main
 extern void* multi_dhcp_main(void *arg); 
 
+static void multi_link_del_info(struct filter_list nlmsg_list, uint16_t nlmsg_type);
+
 int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg){
     uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
     int32_t ret;
@@ -96,7 +98,7 @@ int32_t multi_link_filter(uint32_t seq, mnl_cb_t cb, void *arg){
         ret = mnl_socket_recvfrom(multi_link_nl_request, buf, sizeof(buf));
     }
 
-    return 1;
+    return ret;
 }
 
 
@@ -163,6 +165,61 @@ static uint8_t multi_link_check_unique(struct multi_link_info *li,
     return unique;
 }
 
+//Addresses and routes are always deleted when an interface goes down, but not
+//rules. Netlink is not reliable and there are scenarios where we will loose
+//messages and not clean up properly. We therefore need to make sure that there
+//exists no rules poining to this address/interface
+static int32_t multi_link_rules_sanity(struct multi_link_info *li)
+{
+    struct ip_info ip_info;
+    uint8_t buf[MNL_SOCKET_BUFFER_SIZE];
+    struct nlmsghdr *nlh;
+    struct rtgenmsg *rt;
+    uint32_t seq;
+    int32_t ret;
+
+    memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
+    memset(&ip_info, 0, sizeof(ip_info));
+
+    //I am lazy and will use ip_info for now
+    TAILQ_INIT(&(ip_info.ip_rules_n));
+    ip_info.data = li;
+
+    //Sets room for one nlmsghdr in buffer buf
+    nlh = mnl_nlmsg_put_header(buf);
+    nlh->nlmsg_type = RTM_GETRULE;
+    nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+    nlh->nlmsg_seq = seq = time(NULL);
+    rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
+    rt->rtgen_family = AF_INET; //Multi only supports v4
+
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will check for dirty rules\n");
+
+    if(mnl_socket_sendto(multi_link_nl_request, nlh, nlh->nlmsg_len) < 0){
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Cannot request rules dump\n");
+        return EXIT_FAILURE;
+    }
+
+    ret = multi_link_filter(seq, multi_link_filter_iprules_addr, &ip_info);
+
+    if (ret) {
+        //Some rules might have been added
+        multi_link_free_ip_info(&ip_info);
+        MULTI_DEBUG_PRINT_SYSLOG(stderr, "Sanity check failed (memory)\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!ip_info.ip_rules_n.tqh_first)
+        return EXIT_SUCCESS;
+
+    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Will delete dirty rules\n");
+
+    multi_link_del_info(ip_info.ip_rules_n, RTM_DELRULE);
+    multi_link_free_ip_info(&ip_info);
+
+    return EXIT_SUCCESS;
+}
+
 static void multi_link_check_link(void *data, void *user_data){
     struct multi_link_info *li = (struct multi_link_info *) data;
     struct multi_config *mc = (struct multi_config *) user_data;
@@ -185,6 +242,9 @@ static void multi_link_check_link(void *data, void *user_data){
             pthread_mutex_unlock(&(li->state_lock));
             return;
         }
+
+        /* Check for leftover rules  */
+        multi_link_rules_sanity(li);
 
         //TODO: Add error checks!
         multi_link_configure_link(li);
@@ -657,13 +717,11 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
     if(mnl_socket_bind(multi_link_nl_request, 0, MNL_SOCKET_AUTOPID) < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
         mnl_socket_close(multi_link_nl_event);
-        mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
     }
 
     if(mnl_socket_bind(multi_link_nl_set, 0, MNL_SOCKET_AUTOPID) < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
-        mnl_socket_close(multi_link_nl_event);
         mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
     }
@@ -671,7 +729,6 @@ static int32_t multi_link_event_loop(struct multi_config *mc){
     if(mnl_socket_bind(multi_link_nl_event, 1 << (RTNLGRP_LINK - 1), MNL_SOCKET_AUTOPID) 
             < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not bind mnl event socket\n");
-        mnl_socket_close(multi_link_nl_event);
         mnl_socket_close(multi_link_nl_event);
         return EXIT_FAILURE;
     }
