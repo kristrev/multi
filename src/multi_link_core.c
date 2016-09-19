@@ -357,8 +357,18 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
         //the check for num. links in modify_link ensures that there will always
         //be one metric available if the code gets here
         li->metric = ffs(~multi_shared_metrics_set);
+
+        if (!li->metric) {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "No available metrics\n");
+            free(li);
+            return NULL;
+        }
+
         //ffs starts indexing from 1
+        printf("Before alloc %x\n", multi_shared_metrics_set);
+        printf("Metric %u\n", li->metric);
         multi_shared_metrics_set ^= 1 << (li->metric - 1);
+        printf("After alloc %x\n", multi_shared_metrics_set);
     }
     
     li->state = WAITING_FOR_DHCP;
@@ -369,6 +379,8 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
 
     if(pipe(li->decline_pipe) < 0){
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create decline pipe\n");
+        free(li);
+        return NULL;
     }
 
     return li;
@@ -475,9 +487,15 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                     } else
                         li = multi_link_create_new_link(if_name, 
                                 li_static->metric);
-                } else 
+                } else {
                     /* Allocate a new link, add to list and start DHCP */
                     li = multi_link_create_new_link(if_name, 0);
+                }
+
+                if (!li) {
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create link\n");
+                    return;
+                }
                 
                 //Insert link into link list
                 LIST_INSERT_HEAD(&multi_link_links_2, li, next);
@@ -551,6 +569,12 @@ static void multi_link_modify_link(const struct nlmsghdr *nlh,
                 //Allocate a new link
                 MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is UP\n", if_name);
                 li = multi_link_create_new_link(if_name, li_static->metric);
+
+                if (li == NULL) {
+                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Failed to create new link\n");
+                    return;
+                }
+
                 li->state = GOT_IP_STATIC_UP;
                 li->cfg = li_static->cfg_static;
                 LIST_INSERT_HEAD(&multi_link_links_2, li, next);

@@ -101,67 +101,74 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
         ifi->ifi_flags & IFF_LOOPBACK)
         return MNL_CB_OK;
 
-    if((wireless_mode = multi_link_check_wlan_mode(devname)))
-        if(wireless_mode == 6){
+    if((wireless_mode = multi_link_check_wlan_mode(devname))) {
+        if (wireless_mode == 6) {
             MULTI_DEBUG_PRINT_SYSLOG(stderr, "Interface %s is wireless monitor, "
                     "ignoring\n", devname);
             return MNL_CB_OK;
         }
+    }
 
-    if(tb[IFLA_OPERSTATE]){
-        //Interface is up, do normal operation
-        //Last one is for interfaces that are UP, but not running (for example
-        //no LAN cable)
-        TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
-            list_ptr, devname, multi_cmp_devname);
+    if (!tb[IFLA_OPERSTATE])
+        return MNL_CB_OK;
 
-        if(ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
-                    li_static)){
-            
-            //TODO: Assumes that there is initially always room for every link
-            if(li_static != NULL){
-                if(li_static->proto == PROTO_IGNORE){
-                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignoring %s (idx %d) \n", 
-                            devname, ifi->ifi_index);
-                    return MNL_CB_OK;
-                } else 
-                    li = multi_link_create_new_link(devname, li_static->metric);
-            } else 
-                /* Allocate a new link, add to list and start DHCP */
-                li = multi_link_create_new_link(devname, 0);
+    //Interface is up, do normal operation
+    //Last one is for interfaces that are UP, but not running (for example
+    //no LAN cable)
+    TAILQ_FIND_CUSTOM(li_static, &multi_shared_static_links,
+        list_ptr, devname, multi_cmp_devname);
 
-			/* If link exists in static link list, set link to GOT_STATIC */
-			if(li_static != NULL && li_static->proto == PROTO_STATIC){
-				MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s assigned static IP\n", 
-                        devname);
-
-                //I will only set IP, when interface is only up.
-                if(ifi->ifi_flags & IFF_RUNNING){
-                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is RUNNING\n", devname);
-                    li->state = GOT_IP_STATIC;
-                } else if(ifi->ifi_flags & IFF_UP){
-                    MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is UP\n", devname);
-				    li->state = GOT_IP_STATIC_UP;
-                }
-
-				li->cfg = li_static->cfg_static;
-			} else if(ifi->ifi_type == ARPHRD_PPP){
-                /* PPP will be dealt with separatley, since they get the IP
-                 * remotely by themself */
-                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is PPP!\n", devname);
-                li->state = LINK_DOWN_PPP;
-            } else if(wireless_mode == 3){
-                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is wireless access point\n", 
-                        devname);
-                li->state = LINK_DOWN_AP;                
+    if(ifi->ifi_flags & IFF_RUNNING || ((ifi->ifi_flags & IFF_UP) && 
+                li_static)){
+        //TODO: Assumes that there is initially always room for every link
+        if (li_static != NULL) {
+            if(li_static->proto == PROTO_IGNORE){
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignoring %s (idx %d) \n", 
+                        devname, ifi->ifi_index);
+                return MNL_CB_OK;
             } else {
-                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Found link %s\n", devname);
+                li = multi_link_create_new_link(devname, li_static->metric);
+            }
+        } else { 
+            /* Allocate a new link, add to list and start DHCP */
+            li = multi_link_create_new_link(devname, 0);
+        }
+
+        if (!li) {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Could not create link object\n");
+            return MNL_CB_OK;
+        }
+
+        /* If link exists in static link list, set link to GOT_STATIC */
+        if (li_static != NULL && li_static->proto == PROTO_STATIC) {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s assigned static IP\n", devname);
+
+            //I will only set IP, when interface is only up.
+            if (ifi->ifi_flags & IFF_RUNNING) {
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is RUNNING\n", devname);
+                li->state = GOT_IP_STATIC;
+            } else if (ifi->ifi_flags & IFF_UP) {
+                MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is UP\n", devname);
+                                li->state = GOT_IP_STATIC_UP;
             }
 
-            //The order in which links are stored in this list is not important
-            LIST_INSERT_HEAD(&multi_link_links_2, li, next);
-            ++multi_link_num_links;
+            li->cfg = li_static->cfg_static;
+        } else if (ifi->ifi_type == ARPHRD_PPP) {
+            /* PPP will be dealt with separatley, since they get the IP
+             * remotely by themself */
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is PPP!\n", devname);
+            li->state = LINK_DOWN_PPP;
+        } else if (wireless_mode == 3) {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Link %s is wireless access point\n", 
+                    devname);
+            li->state = LINK_DOWN_AP;                
+        } else {
+            MULTI_DEBUG_PRINT_SYSLOG(stderr, "Found link %s\n", devname);
         }
+
+        //The order in which links are stored in this list is not important
+        LIST_INSERT_HEAD(&multi_link_links_2, li, next);
+        ++multi_link_num_links;
     }
 
     return MNL_CB_OK;
