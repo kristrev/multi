@@ -56,4 +56,10 @@ struct multi_link_info{
     LIST_ENTRY(multi_link_info) next;
 };
 
+//Struct used to filter iprules, store and check last metric
+struct multi_link_filter_iprule {
+    struct multi_link_info *li;
+    uint32_t last_prio;
+};
+
 #endif

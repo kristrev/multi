@@ -305,6 +305,11 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
 
     fra_priority = mnl_attr_get_u32(tb[FRA_PRIORITY]);
 
+    if (fra_priority != ADDR_RULE_PRIO &&
+        fra_priority != NW_RULE_PRIO &&
+        (fra_priority < (DEF_RULE_PRIO + 1) || fra_priority > DEF_RULE_MAX))
+        return MNL_CB_OK;
+
     //The last part of this check is not perfect, but it works for now. Will
     //break when someone adds a rule with a larger priority
     if (fra_priority != ADDR_RULE_PRIO && fra_priority != NW_RULE_PRIO &&
@@ -325,29 +330,41 @@ int32_t multi_link_filter_iprules(const struct nlmsghdr *nlh, void *data){
     return MNL_CB_OK;
 }
 
-//Create a list of rules matching the given source address
-int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
+static uint8_t multi_link_filter_cmp_def_rule(
+        struct multi_link_filter_iprule *filter_iprule,
+        uint32_t prio)
 {
-    struct ip_info *ip_info = (struct ip_info *) data;
-    struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
-    struct nlattr *tb[FRA_MAX + 1] = {};
-    char *iface_name = NULL;
-    struct filter_msg *msg;
-    uint32_t target_table, rule_addr, prio;
-    struct multi_link_info *li = ip_info->data, *li_itr;
+    struct multi_link_info *li_itr = multi_link_links_2.lh_first;
 
-    mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
+    //Rules are returned in order, so this will take care of any duplicate
+    //rules. We should never have any 91000 + X rules
+    //pointing to the same table
+    if (prio  == filter_iprule->last_prio)
+        return 1;
 
-    if (!tb[FRA_PRIORITY] || !tb[FRA_TABLE])
-        return MNL_CB_OK;
+    filter_iprule->last_prio = prio;
 
-    prio = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+    //In case we have missed a dellink, check if there is a network with
+    //matching metric. We don't need to check for multiple entries with same
+    //metric, that is taken care of by the previous check
+    while (li_itr != NULL) {
+        if (li_itr->metric == prio)
+            break;
 
-    if (prio != ADDR_RULE_PRIO && prio != NW_RULE_PRIO)
-        return MNL_CB_OK;
+        li_itr = li_itr->next.le_next;
+    }
 
+    return li_itr == NULL;
+}
+
+static uint8_t multi_link_filter_cmp_nw_addr_rule(struct nlattr *tb[],
+        struct multi_link_info *li)
+{
+    uint32_t rule_addr, target_table;
+    struct multi_link_info *li_itr = multi_link_links_2.lh_first;
+    
     if ((!tb[FRA_SRC] && !tb[FRA_DST]) || (tb[FRA_SRC] && tb[FRA_DST]))
-        return MNL_CB_OK;
+        return 0;
 
     if (tb[FRA_SRC])
         rule_addr = mnl_attr_get_u32(tb[FRA_SRC]);
@@ -355,12 +372,12 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
         rule_addr = mnl_attr_get_u32(tb[FRA_DST]);
 
     if (rule_addr != li->cfg.address.s_addr)
-        return MNL_CB_OK;
+        return 0;
 
     target_table = mnl_attr_get_u32(tb[FRA_TABLE]);
 
     //Need to check if there exists an interface with this IP using this table
-    for (li_itr = multi_link_links_2.lh_first; li_itr != NULL; ){
+    while (li_itr != NULL) {
         if (li != li_itr &&
             li_itr->cfg.address.s_addr == rule_addr &&
             li_itr->metric == target_table)
@@ -369,7 +386,42 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
         li_itr = li_itr->next.le_next;
     }
 
-    if (li_itr != NULL) {
+    if (li_itr != NULL)
+        return 0;
+    else
+        return 1;
+}
+
+//Create a list of rules matching the given source address
+int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
+{
+    struct ip_info *ip_info = (struct ip_info *) data;
+    struct rtmsg *rt = mnl_nlmsg_get_payload(nlh);
+    struct nlattr *tb[FRA_MAX + 1] = {};
+    char *iface_name = NULL;
+    struct filter_msg *msg;
+    uint32_t target_table, prio;
+    struct multi_link_filter_iprule *filter_iprule = ip_info->data;
+    struct multi_link_info *li = filter_iprule->li, *li_itr;
+    uint8_t should_delete = 0;
+
+    mnl_attr_parse(nlh, sizeof(*rt), multi_link_fill_rtattr, tb);
+
+    if (!tb[FRA_PRIORITY] || !tb[FRA_TABLE])
+        return MNL_CB_OK;
+
+    prio = mnl_attr_get_u32(tb[FRA_PRIORITY]);
+
+    if (prio != ADDR_RULE_PRIO && prio != NW_RULE_PRIO &&
+        (prio < (DEF_RULE_PRIO + 1) || prio > DEF_RULE_MAX))
+        return MNL_CB_OK;
+
+    if (prio > (DEF_RULE_PRIO + 1) && prio <= DEF_RULE_MAX)
+        should_delete = multi_link_filter_cmp_def_rule(filter_iprule, prio);
+    else
+        should_delete = multi_link_filter_cmp_nw_addr_rule(tb, li);
+
+    if (!should_delete) {
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Ignore (sanity) rule pref %u table %u\n",
                 mnl_attr_get_u32(tb[FRA_PRIORITY]), target_table);
         return MNL_CB_OK;
@@ -383,6 +435,9 @@ int32_t multi_link_filter_iprules_addr(const struct nlmsghdr *nlh, void *data)
         MULTI_DEBUG_PRINT_SYSLOG(stderr, "Can't allocate memory for rule message\n");
         return MNL_CB_ERROR;
     }
+
+    MULTI_DEBUG_PRINT_SYSLOG(stderr,  "Delete (sanity) rule pref %u\n", 
+            prio);
 
     memcpy(&(msg->nlh), nlh, nlh->nlmsg_len);
     TAILQ_INSERT_TAIL(&(ip_info->ip_rules_n), msg, list_ptr);

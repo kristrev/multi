@@ -177,13 +177,16 @@ static int32_t multi_link_rules_sanity(struct multi_link_info *li)
     struct rtgenmsg *rt;
     uint32_t seq;
     int32_t ret;
+    struct multi_link_filter_iprule filter_iprule = {0};
 
     memset(buf, 0, MNL_SOCKET_BUFFER_SIZE);
     memset(&ip_info, 0, sizeof(ip_info));
 
     //I am lazy and will use ip_info for now
     TAILQ_INIT(&(ip_info.ip_rules_n));
-    ip_info.data = li;
+
+    filter_iprule.li = li;
+    ip_info.data = &filter_iprule;
 
     //Sets room for one nlmsghdr in buffer buf
     nlh = mnl_nlmsg_put_header(buf);
@@ -365,10 +368,7 @@ struct multi_link_info *multi_link_create_new_link(uint8_t* dev_name,
         }
 
         //ffs starts indexing from 1
-        printf("Before alloc %x\n", multi_shared_metrics_set);
-        printf("Metric %u\n", li->metric);
         multi_shared_metrics_set ^= 1 << (li->metric - 1);
-        printf("After alloc %x\n", multi_shared_metrics_set);
     }
     
     li->state = WAITING_FOR_DHCP;
