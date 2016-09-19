@@ -239,7 +239,7 @@ struct multi_config* multi_core_initialize_config(uint8_t *cfg_file,
         uint8_t unique){
     struct multi_config *mc;
 
-    multi_shared_metrics_set = 0xEFFFFFFF;
+    multi_shared_metrics_set = 0;
     //multi_shared_metrics_set = 0;
     mc = (struct multi_config *) malloc(sizeof(struct multi_config));
     memset(mc, 0, sizeof(struct multi_config));
