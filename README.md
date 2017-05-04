@@ -1,3 +1,5 @@
+# MULTI is deprecated. Please see [here](https://github.com/kristrev/multihomed-routing) for a better approach which works with ifupdown and NetworkManager
+
 MULTI Network Manager
 =====================
 
