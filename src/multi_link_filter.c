@@ -96,7 +96,7 @@ int32_t multi_link_filter_links(const struct nlmsghdr *nlh, void *data){
     if (!strncmp(devname, "veth", 4) ||
         !strncmp(devname, "ifb", 3) ||
         ifi->ifi_type == ARPHRD_VOID ||
-        (ifi->ifi_type == ARPHRD_NONE && strncmp(devname, "wwan", 4)) ||
+        (ifi->ifi_type == ARPHRD_NONE && strncmp(devname, "wwan", 4) && strncmp(devname, "nlw_1", 4)) ||
         ifi->ifi_type == ARPHRD_TUNNEL ||
         ifi->ifi_flags & IFF_LOOPBACK)
         return MNL_CB_OK;
